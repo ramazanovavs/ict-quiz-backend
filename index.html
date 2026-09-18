@@ -65,6 +65,7 @@
     margin-top:20px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--border);
     padding-top:14px;
   }
+  .week-list{font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;line-height:1.7;}
 
   .loading-box{text-align:center;padding:30px 10px;}
   .spinner{
@@ -131,13 +132,15 @@
   .score-sub{font-size:13px;color:var(--ink-soft);margin-top:6px;}
   .section-label{font-size:13.5px;font-weight:700;margin:22px 0 10px;color:var(--ink);}
   .topic-row{margin-bottom:12px;}
-  .topic-row-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+  .topic-row-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;gap:10px;}
+  .topic-row-head span:first-child{flex:1;}
   .topic-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
   .topic-bar-fill{height:100%;}
   .bar-low{background:var(--danger);} .bar-mid{background:var(--warning);} .bar-good{background:var(--success);}
   .rec-item{border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
   .rec-topic{font-size:13px;font-weight:700;color:var(--accent-dark);margin-bottom:3px;}
   .rec-lab{font-size:13px;color:var(--ink-soft);}
+  .rec-lab a{color:var(--accent-dark);font-weight:700;}
   .rec-empty{font-size:13.5px;color:var(--ink-soft);}
   .restart-btn{
     margin-top:22px;width:100%;border:1px solid var(--border);background:var(--surface);
@@ -150,35 +153,27 @@
 
   <header class="top">
     <h1>Тест уровня владения ИКТ</h1>
-    <p>Вопросы генерирует ИИ через сервер. Проверка ответов и рекомендации — программный код, без участия модели.</p>
+    <p>По силлабусу курса (15 недель). Вопросы генерирует ИИ через сервер. Проверка ответов и рекомендации — программный код, без участия модели.</p>
   </header>
 
   <section id="view-start" class="card">
-    <p class="start-lead">Тест из 40 вопросов по 8 темам ИКТ: системы счисления, логика, кодирование информации, алгоритмы, сети, базы данных, аппаратное обеспечение и ОС, информационная безопасность. По итогам — уровень владения и список тем с рекомендованными лабораторными работами.</p>
+    <p class="start-lead">Тест из 30 вопросов — по 2 вопроса на каждую из 15 недель курса. По итогам — уровень владения и список недель с рекомендованными лабораторными работами.</p>
 
     <button class="mode-btn primary" id="btn-full">
-      <b>Полный тест — 40 вопросов</b>
-      <span>15 вопросов генерируются программно (гарантированно верные), 25 — запрашиваются у сервера</span>
-    </button>
-    <button class="mode-btn" id="btn-basic">
-      <b>Быстрый тест — 15 вопросов (офлайн)</b>
-      <span>Только программно сгенерированные вопросы, без обращения к серверу</span>
+      <b>Начать тест — 30 вопросов</b>
+      <span>По 2 вопроса на каждую из 15 недель, генерирует ИИ через сервер</span>
     </button>
 
     <div class="method-note">
-      Как считается результат: правильность каждого ответа определяется сравнением выбранного варианта с заранее известным правильным индексом — это делает код страницы, а не модель. Для тем «Системы счисления», «Логика» и «Кодирование информации» верный ответ вычисляется напрямую (переводы систем счисления, булева алгебра, степени двойки).
-      Для остальных тем правильный индекс фиксируется на сервере в момент генерации и ещё раз проверяется там же перед отправкой на страницу — так исключаются вопросы без правильного варианта среди options.
+      Как считается результат: правильность каждого ответа определяется сравнением выбранного варианта с заранее известным правильным индексом — это делает код страницы, а не модель. Вопросы и правильный индекс генерирует ИИ на сервере по материалу силлабуса каждой недели (с возможностью усложнять и расширять тему); сервер проверяет форму ответа (4 варианта, индекс 0–3, допустимый номер недели) и сам подставляет официальное название темы недели — независимо от того, что написала модель в поле topic.
     </div>
   </section>
 
   <section id="view-loading" class="card hidden">
     <div class="loading-box">
-      <div id="loading-idle" class="hidden">
-        <p class="loading-text">Подготовка вопросов…</p>
-      </div>
-      <div id="loading-generating" class="hidden">
+      <div id="loading-generating">
         <div class="spinner"></div>
-        <p class="loading-text" id="loading-text">Сервер запрашивает вопросы у модели… обычно 10–40 секунд.</p>
+        <p class="loading-text" id="loading-text">Сервер запрашивает вопросы у модели по всем 15 неделям… обычно 15–60 секунд.</p>
         <button class="stop-btn" id="btn-stop">Остановить</button>
       </div>
       <div id="loading-error" class="hidden">
@@ -190,10 +185,10 @@
 
   <section id="view-quiz" class="card hidden">
     <div class="progress-head">
-      <span id="progress-text">Вопрос 1 из 40</span>
+      <span id="progress-text">Вопрос 1 из 30</span>
     </div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-    <div class="topic-badge" id="topic-badge">Тема</div>
+    <div class="topic-badge" id="topic-badge">Неделя 1 — Тема</div>
     <div class="question-text" id="question-text">Текст вопроса</div>
     <div id="options-wrap"></div>
     <div class="explanation hidden" id="explanation-box"></div>
@@ -207,10 +202,10 @@
       <div class="score-sub" id="result-sub"></div>
     </div>
 
-    <div class="section-label">Результат по темам</div>
+    <div class="section-label">Результат по неделям</div>
     <div id="topic-list"></div>
 
-    <div class="section-label">Рекомендуемые темы и лабораторные работы</div>
+    <div class="section-label">Рекомендуемые недели и лабораторные работы</div>
     <div id="rec-wrap"></div>
 
     <button class="restart-btn" id="restart-btn">Пройти тест заново</button>
@@ -225,171 +220,43 @@
   // Адрес сервера задан один раз здесь — менять нужно только эту строку.
   var ENDPOINT = "https://ict-quiz-backend.onrender.com/api/generate-questions";
 
-  var LAB_MAP = {
-    "Системы счисления": "Лабораторная работа №1. Системы счисления и компьютерная арифметика",
-    "Логика": "Лабораторная работа №2. Алгебра логики и логические схемы",
-    "Кодирование информации": "Лабораторная работа №3. Измерение и кодирование информации",
-    "Алгоритмы и программирование": "Лабораторная работа №4. Основы алгоритмизации и программирования",
-    "Сети и Интернет": "Лабораторная работа №5. Компьютерные сети и Интернет-технологии",
-    "Базы данных": "Лабораторная работа №6. Проектирование и работа с базами данных",
-    "Аппаратное обеспечение и ОС": "Лабораторная работа №7. Архитектура ПК и операционные системы",
-    "Информационная безопасность": "Лабораторная работа №8. Основы информационной безопасности"
+  // 15 недель курса — соответствуют WEEK_TOPICS в server.js. Список используется
+  // только для группировки результатов и подписи вопросов; сами темы и порядок
+  // задаёт сервер (он же подставляет канонический topic по номеру недели).
+  var WEEK_TITLES = {
+    1: "Роль ИКТ в развитии общества, стандарты ИКТ",
+    2: "Архитектура компьютерных систем",
+    3: "Операционные системы: функции, права доступа, аутентификация",
+    4: "Взаимодействие человека и компьютера: интерфейсы (CLI, GUI)",
+    5: "Системы баз данных: архитектура, нормализация",
+    6: "Анализ и управление данными, работа в MS Excel",
+    7: "Сети и телекоммуникации, IP-адресация, маршрутизация",
+    8: "Кибербезопасность: вирусы, пароли, ЭЦП",
+    9: "Интернет-технологии и CMS (WordPress)",
+    10: "Облачные и мобильные технологии",
+    11: "Мультимедийные технологии, MS PowerPoint",
+    12: "Умные технологии (Smart TV, умный дом)",
+    13: "Электронный бизнес, обучение и правительство",
+    14: "ИКТ в профессиональной сфере",
+    15: "Перспективы развития ИКТ, стартапы"
   };
-  var TOPICS_LLM = ["Алгоритмы и программирование","Сети и Интернет","Базы данных","Аппаратное обеспечение и ОС","Информационная безопасность"];
+
+  // Ссылки на лабораторные работы по неделям — заполни после загрузки материалов:
+  // LAB_LINKS[номер_недели] = { title: "Лабораторная работа №N. ...", url: "https://..." }
+  // Пока не заполнено — в рекомендациях будет показана заглушка.
+  var LAB_LINKS = {
+    1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null,
+    9: null, 10: null, 11: null, 12: null, 13: null, 14: null, 15: null
+  };
+
   var LETTERS = ["А","Б","В","Г"];
   var abortCtl = null;
   var state = { questions:[], current:0, answers:[], results:null };
 
-  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
   function shuffle(arr){
     var a = arr.slice();
     for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
     return a;
-  }
-  function makeMCQuestion(topic, questionText, correctValue, distractorFn, explanation){
-    var opts = [String(correctValue)];
-    var guard = 0;
-    while(opts.length<4 && guard<60){
-      var d = String(distractorFn());
-      if(opts.indexOf(d)===-1) opts.push(d);
-      guard++;
-    }
-    var padN = 1;
-    while(opts.length<4){ opts.push(String(correctValue)+"_"+(padN++)); }
-    opts = shuffle(opts);
-    var correctIndex = opts.indexOf(String(correctValue));
-    return {topic:topic, question:questionText, options:opts, correct_index:correctIndex, explanation:explanation};
-  }
-
-  function genNumberSystemsQuestions(n){
-    var qs = [];
-    var types = ["bin2dec","dec2bin","bin2oct","bin2hex","bits_needed"];
-    for(var i=0;i<n;i++){
-      var type = types[i % types.length];
-      if(type==="bin2dec"){
-        var dec = randInt(9,250);
-        var bin = dec.toString(2);
-        qs.push(makeMCQuestion("Системы счисления", "Какое десятичное число соответствует двоичному "+bin+"?", dec,
-          function(){ return dec + randInt(1,8)*(Math.random()<0.5?-1:1); },
-          bin+"\u2082 = "+dec+"\u2081\u2080 (сумма степеней двойки по разрядам)."));
-      } else if(type==="dec2bin"){
-        var dec2 = randInt(9,250);
-        var correctBin = dec2.toString(2);
-        qs.push(makeMCQuestion("Системы счисления", "Переведите десятичное число "+dec2+" в двоичную систему.", correctBin,
-          function(){ var d=correctBin.split(""); var idx=randInt(0,d.length-1); d[idx]=d[idx]==="0"?"1":"0"; return d.join(""); },
-          dec2+"\u2081\u2080 = "+correctBin+"\u2082."));
-      } else if(type==="bin2oct"){
-        var dec3 = randInt(9,500);
-        var bin3 = dec3.toString(2);
-        while(bin3.length % 3 !== 0) bin3 = "0"+bin3;
-        var correctOct = parseInt(bin3,2).toString(8);
-        qs.push(makeMCQuestion("Системы счисления", "Какое восьмеричное число соответствует двоичному "+bin3+"?", correctOct,
-          function(){ return (parseInt(correctOct,8)+randInt(1,6)).toString(8); },
-          bin3+"\u2082, группируя по 3 бита справа, даёт "+correctOct+"\u2088."));
-      } else if(type==="bin2hex"){
-        var dec4 = randInt(9,4000);
-        var bin4 = dec4.toString(2);
-        while(bin4.length % 4 !== 0) bin4 = "0"+bin4;
-        var correctHex = parseInt(bin4,2).toString(16).toUpperCase();
-        qs.push(makeMCQuestion("Системы счисления", "Какое шестнадцатеричное число соответствует двоичному "+bin4+"?", correctHex,
-          function(){ return (parseInt(correctHex,16)+randInt(1,10)).toString(16).toUpperCase(); },
-          bin4+"\u2082, группируя по 4 бита справа, даёт "+correctHex+"\u2081\u2086."));
-      } else {
-        var dec5 = randInt(5,300);
-        var bits = Math.floor(Math.log2(dec5))+1;
-        qs.push(makeMCQuestion("Системы счисления", "Сколько бит нужно для представления числа "+dec5+" в двоичной системе?", bits,
-          function(){ return bits + (Math.random()<0.5?-1:1)*randInt(1,2); },
-          "2^"+(bits-1)+" \u2264 "+dec5+" < 2^"+bits+", поэтому нужно "+bits+" бит."));
-      }
-    }
-    return qs;
-  }
-
-  var LOGIC_EXPRS = [
-    {label:"A И B", fn:function(a,b){return a&&b;}},
-    {label:"A ИЛИ B", fn:function(a,b){return a||b;}},
-    {label:"НЕ A", fn:function(a,b){return !a;}},
-    {label:"НЕ B", fn:function(a,b){return !b;}},
-    {label:"A И (НЕ B)", fn:function(a,b){return a&&!b;}},
-    {label:"(НЕ A) ИЛИ B", fn:function(a,b){return (!a)||b;}},
-    {label:"(НЕ A) И (НЕ B)", fn:function(a,b){return (!a)&&(!b);}},
-    {label:"A ИЛИ (НЕ B)", fn:function(a,b){return a||(!b);}},
-    {label:"A искл.ИЛИ B", fn:function(a,b){return (a?1:0)!==(b?1:0);}},
-    {label:"(НЕ A) искл.ИЛИ B", fn:function(a,b){return ((!a)?1:0)!==(b?1:0);}}
-  ];
-  function genLogicQuestions(n){
-    var qs = [];
-    for(var i=0;i<n;i++){
-      var A = Math.random()<0.5, B = Math.random()<0.5;
-      var pool = null, vals = null, attempts = 0;
-      while(attempts<30){
-        var candidate = shuffle(LOGIC_EXPRS).slice(0,4);
-        var v = candidate.map(function(e){ return e.fn(A,B); });
-        var trueCount = v.filter(Boolean).length;
-        if(trueCount===1){ pool=candidate; vals=v; break; }
-        attempts++;
-      }
-      if(!pool){
-        var trueExprs = LOGIC_EXPRS.filter(function(e){ return e.fn(A,B); });
-        var falseExprs = shuffle(LOGIC_EXPRS.filter(function(e){ return !e.fn(A,B); })).slice(0,3);
-        pool = shuffle([trueExprs[0]].concat(falseExprs));
-        vals = pool.map(function(e){ return e.fn(A,B); });
-      }
-      var correctIdx = vals.indexOf(true);
-      var options = pool.map(function(e){ return e.label; });
-      qs.push({
-        topic: "Логика",
-        question: "Даны A = "+(A?1:0)+", B = "+(B?1:0)+". Какое из выражений истинно (равно 1)?",
-        options: options,
-        correct_index: correctIdx,
-        explanation: "При A="+(A?1:0)+", B="+(B?1:0)+" верно только «"+options[correctIdx]+"» = 1; остальные выражения при этих значениях равны 0."
-      });
-    }
-    return qs;
-  }
-
-  function genEncodingQuestions(n){
-    var qs = [];
-    var types = ["bits_for_symbols","kb_to_b","mb_to_kb","bits_to_bytes","values_for_bits"];
-    for(var i=0;i<n;i++){
-      var type = types[i % types.length];
-      if(type==="bits_for_symbols"){
-        var N = randInt(5,200);
-        var bits = Math.ceil(Math.log2(N));
-        qs.push(makeMCQuestion("Кодирование информации", "Сколько бит минимально необходимо, чтобы закодировать алфавит из "+N+" различных символов?", bits,
-          function(){ return bits + (Math.random()<0.5?-1:1)*randInt(1,2); },
-          "2^"+(bits-1)+" < "+N+" \u2264 2^"+bits+", поэтому минимально нужно "+bits+" бит."));
-      } else if(type==="kb_to_b"){
-        var kb = randInt(2,64);
-        var correctB = kb*1024;
-        qs.push(makeMCQuestion("Кодирование информации", "Сколько байт в "+kb+" Кбайт (считая 1 Кбайт = 1024 байт)?", correctB,
-          function(){ return kb*1000 + randInt(1,50); },
-          kb+" \u00d7 1024 = "+correctB+" байт."));
-      } else if(type==="mb_to_kb"){
-        var mb = randInt(2,64);
-        var correctKb = mb*1024;
-        qs.push(makeMCQuestion("Кодирование информации", "Сколько Кбайт в "+mb+" Мбайт?", correctKb,
-          function(){ return mb*1000 + randInt(1,50); },
-          mb+" \u00d7 1024 = "+correctKb+" Кбайт."));
-      } else if(type==="bits_to_bytes"){
-        var bytes = randInt(2,200);
-        var bitsVal = bytes*8;
-        qs.push(makeMCQuestion("Кодирование информации", "Объём данных — "+bitsVal+" бит. Сколько это байт?", bytes,
-          function(){ return bytes + randInt(1,6); },
-          bitsVal+" / 8 = "+bytes+" байт."));
-      } else {
-        var k = randInt(3,10);
-        var correctVals = Math.pow(2,k);
-        qs.push(makeMCQuestion("Кодирование информации", "Сколько различных значений можно закодировать с помощью "+k+" бит?", correctVals,
-          function(){ return Math.random()<0.5 ? Math.pow(2,k-1) : Math.pow(2,k)+randInt(1,4); },
-          "Количество комбинаций = 2^"+k+" = "+correctVals+"."));
-      }
-    }
-    return qs;
-  }
-
-  function buildProceduralQuestions(){
-    return genNumberSystemsQuestions(5).concat(genLogicQuestions(5), genEncodingQuestions(5));
   }
 
   function validateLLMQuestions(data){
@@ -399,10 +266,17 @@
         Array.isArray(q.options) && q.options.length===4 &&
         q.options.every(function(o){ return typeof o==="string" && o.trim(); }) &&
         Number.isInteger(q.correct_index) && q.correct_index>=0 && q.correct_index<=3 &&
-        typeof q.topic==="string" && TOPICS_LLM.indexOf(q.topic)!==-1 &&
+        Number.isInteger(q.week) && q.week>=1 && q.week<=15 &&
         typeof q.explanation==="string";
     }).map(function(q){
-      return {topic:q.topic, question:q.question, options:q.options, correct_index:q.correct_index, explanation:q.explanation};
+      return {
+        week: q.week,
+        topic: WEEK_TITLES[q.week] || q.topic,
+        question: q.question,
+        options: q.options,
+        correct_index: q.correct_index,
+        explanation: q.explanation
+      };
     });
   }
 
@@ -412,7 +286,7 @@
       resp = await fetch(ENDPOINT, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({topics: TOPICS_LLM, perTopic: 5}),
+        body: JSON.stringify({perWeek: 2}),
         signal: signal
       });
     }catch(e){
@@ -437,8 +311,6 @@
       results: document.getElementById("view-results")
     },
     fullBtn: document.getElementById("btn-full"),
-    basicBtn: document.getElementById("btn-basic"),
-    loadingIdle: document.getElementById("loading-idle"),
     loadingGenerating: document.getElementById("loading-generating"),
     loadingText: document.getElementById("loading-text"),
     loadingError: document.getElementById("loading-error"),
@@ -467,7 +339,6 @@
   }
 
   function loadingState(mode){
-    els.loadingIdle.classList.toggle("hidden", mode!=="idle");
     els.loadingGenerating.classList.toggle("hidden", mode!=="generating");
     els.loadingError.classList.toggle("hidden", mode!=="error");
   }
@@ -482,41 +353,32 @@
     }
   }
 
-  function renderError(err, procedural){
+  function renderError(err){
     loadingState("error");
     els.errorText.textContent = errorMessage(err);
     els.errorActions.innerHTML = "";
     var retryBtn = document.createElement("button");
     retryBtn.className = "primary";
     retryBtn.textContent = "Повторить";
-    retryBtn.onclick = function(){ startTest("full"); };
+    retryBtn.onclick = function(){ startTest(); };
     els.errorActions.appendChild(retryBtn);
-    var fallbackBtn = document.createElement("button");
-    fallbackBtn.textContent = "Продолжить без ИИ (15 вопросов)";
-    fallbackBtn.onclick = function(){ finalizeQuestions(procedural); };
-    els.errorActions.appendChild(fallbackBtn);
     var backBtn = document.createElement("button");
     backBtn.textContent = "Назад";
     backBtn.onclick = function(){ showView("start"); };
     els.errorActions.appendChild(backBtn);
   }
 
-  async function startTest(mode){
+  async function startTest(){
     showView("loading");
-    var procedural = buildProceduralQuestions();
-    if(mode==="basic"){
-      finalizeQuestions(procedural);
-      return;
-    }
     loadingState("generating");
     abortCtl = new AbortController();
     try{
       var llmQs = await generateLLMQuestions(abortCtl.signal);
-      if(llmQs.length < 10){ throw {code:"invalid_json"}; }
-      finalizeQuestions(shuffle(procedural.concat(llmQs)));
+      if(llmQs.length < 15){ throw {code:"invalid_json"}; }
+      finalizeQuestions(shuffle(llmQs));
     }catch(err){
       if(err && err.code==="cancelled"){ showView("start"); return; }
-      renderError(err||{}, procedural);
+      renderError(err||{});
     }
   }
 
@@ -533,7 +395,7 @@
     var total = state.questions.length;
     els.progressText.textContent = "Вопрос "+(state.current+1)+" из "+total;
     els.progressFill.style.width = Math.round((state.current/total)*100)+"%";
-    els.topicBadge.textContent = q.topic;
+    els.topicBadge.textContent = "Неделя "+q.week+" — "+q.topic;
     els.questionText.textContent = q.question;
     els.optionsWrap.innerHTML = "";
     var answered = state.answers[state.current];
@@ -578,25 +440,25 @@
   }
 
   function computeResults(){
-    var byTopic = {};
+    var byWeek = {};
     state.questions.forEach(function(q, i){
-      if(!byTopic[q.topic]) byTopic[q.topic] = {correct:0, total:0};
-      byTopic[q.topic].total++;
-      if(state.answers[i]===q.correct_index) byTopic[q.topic].correct++;
+      if(!byWeek[q.week]) byWeek[q.week] = {week:q.week, topic:q.topic, correct:0, total:0};
+      byWeek[q.week].total++;
+      if(state.answers[i]===q.correct_index) byWeek[q.week].correct++;
     });
     var totalCorrect = 0, totalQ = state.questions.length;
-    Object.keys(byTopic).forEach(function(t){ totalCorrect += byTopic[t].correct; });
+    Object.keys(byWeek).forEach(function(w){ totalCorrect += byWeek[w].correct; });
     var overallPercent = Math.round((totalCorrect/totalQ)*100);
     var level;
     if(overallPercent<40) level = "Начальный";
     else if(overallPercent<65) level = "Базовый";
     else if(overallPercent<85) level = "Средний";
     else level = "Продвинутый";
-    var topicRows = Object.keys(byTopic).map(function(t){
-      var v = byTopic[t];
-      return {topic:t, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
-    }).sort(function(a,b){ return a.percent-b.percent; });
-    state.results = {byTopic:topicRows, overallPercent:overallPercent, level:level, totalCorrect:totalCorrect, totalQ:totalQ};
+    var weekRows = Object.keys(byWeek).map(function(w){
+      var v = byWeek[w];
+      return {week:v.week, topic:v.topic, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
+    }).sort(function(a,b){ return a.percent-b.percent || a.week-b.week; });
+    state.results = {byWeek:weekRows, overallPercent:overallPercent, level:level, totalCorrect:totalCorrect, totalQ:totalQ};
   }
 
   function levelClass(level){
@@ -618,46 +480,55 @@
     els.resultSub.textContent = "Правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
 
     els.topicList.innerHTML = "";
-    r.byTopic.forEach(function(t){
+    r.byWeek.forEach(function(w){
       var row = document.createElement("div");
       row.className = "topic-row";
       var head = document.createElement("div");
       head.className = "topic-row-head";
       var headLeft = document.createElement("span");
-      headLeft.textContent = t.topic;
+      headLeft.textContent = "Неделя "+w.week+" — "+w.topic;
       var headRight = document.createElement("span");
-      headRight.textContent = t.correct+"/"+t.total+" ("+t.percent+"%)";
+      headRight.textContent = w.correct+"/"+w.total+" ("+w.percent+"%)";
       head.appendChild(headLeft);
       head.appendChild(headRight);
       var bar = document.createElement("div");
       bar.className = "topic-bar";
       var fill = document.createElement("div");
-      fill.className = "topic-bar-fill " + barClass(t.percent);
-      fill.style.width = t.percent+"%";
+      fill.className = "topic-bar-fill " + barClass(w.percent);
+      fill.style.width = w.percent+"%";
       bar.appendChild(fill);
       row.appendChild(head);
       row.appendChild(bar);
       els.topicList.appendChild(row);
     });
 
-    var weak = r.byTopic.filter(function(t){ return t.percent<70; });
+    var weak = r.byWeek.filter(function(w){ return w.percent<70; });
     els.recWrap.innerHTML = "";
     if(weak.length===0){
       var p = document.createElement("p");
       p.className = "rec-empty";
-      p.textContent = "Все темы освоены на хорошем уровне — можно переходить к практическим проектным работам.";
+      p.textContent = "Все недели освоены на хорошем уровне — можно переходить к практическим проектным работам.";
       els.recWrap.appendChild(p);
     } else {
-      weak.forEach(function(t){
+      weak.forEach(function(w){
         var item = document.createElement("div");
         item.className = "rec-item";
-        var lab = LAB_MAP[t.topic] || ("Повторение темы «"+t.topic+"»");
         var topicDiv = document.createElement("div");
         topicDiv.className = "rec-topic";
-        topicDiv.textContent = t.topic+" — "+t.percent+"%";
+        topicDiv.textContent = "Неделя "+w.week+" — "+w.topic+" ("+w.percent+"%)";
         var labDiv = document.createElement("div");
         labDiv.className = "rec-lab";
-        labDiv.textContent = lab;
+        var lab = LAB_LINKS[w.week];
+        if(lab && lab.url){
+          var a = document.createElement("a");
+          a.href = lab.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = lab.title || ("Лабораторная работа — неделя "+w.week);
+          labDiv.appendChild(a);
+        } else {
+          labDiv.textContent = "Материалы лабораторной работы по этой неделе появятся позже.";
+        }
         item.appendChild(topicDiv);
         item.appendChild(labDiv);
         els.recWrap.appendChild(item);
@@ -665,8 +536,7 @@
     }
   }
 
-  els.fullBtn.onclick = function(){ startTest("full"); };
-  els.basicBtn.onclick = function(){ startTest("basic"); };
+  els.fullBtn.onclick = function(){ startTest(); };
   els.restartBtn.onclick = function(){ showView("start"); };
   els.nextBtn.onclick = function(){
     if(state.current < state.questions.length-1){
@@ -678,7 +548,6 @@
   };
   els.stopBtn.onclick = function(){ if(abortCtl) abortCtl.abort(); };
 
-  loadingState("idle");
   showView("start");
 })();
 </script>
