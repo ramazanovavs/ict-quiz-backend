@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тест уровня владения ИКТ</title>
+<style>
+  :root{
+    --bg:#F5F6F3; --surface:#FFFFFF; --border:#DFE3DE;
+    --ink:#16262A; --ink-soft:#55625D;
+    --accent:#2F6F63; --accent-dark:#1D4A41; --accent-soft:#E3EFEC;
+    --gold:#C79A3D;
+    --success:#2F8F5B; --success-soft:#E4F5EC;
+    --danger:#B23A2E; --danger-soft:#FBEAE7;
+    --warning:#C79A3D; --warning-soft:#FBF1DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121A1B; --surface:#1B2426; --border:#2B3638;
+      --ink:#EAF0EE; --ink-soft:#AAB8B4;
+      --accent:#4FA391; --accent-dark:#2F6F63; --accent-soft:#1A302B;
+      --gold:#E0BB63;
+      --success:#59C98A; --success-soft:#173324;
+      --danger:#E1685C; --danger-soft:#3A211D;
+      --warning:#E0BB63; --warning-soft:#3A2E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121A1B; --surface:#1B2426; --border:#2B3638;
+    --ink:#EAF0EE; --ink-soft:#AAB8B4;
+    --accent:#4FA391; --accent-dark:#2F6F63; --accent-soft:#1A302B;
+    --gold:#E0BB63;
+    --success:#59C98A; --success-soft:#173324;
+    --danger:#E1685C; --danger-soft:#3A211D;
+    --warning:#E0BB63; --warning-soft:#3A2E14;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 60px;}
+  header.top{margin-bottom:22px;}
+  header.top h1{font-size:20px;margin:0 0 4px;}
+  header.top p{margin:0;color:var(--ink-soft);font-size:13.5px;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:22px;
+  }
+  .hidden{display:none !important;}
+
+  .start-lead{font-size:14.5px;color:var(--ink-soft);margin-bottom:18px;}
+  .mode-btn{
+    display:block;width:100%;text-align:left;border:1px solid var(--border);
+    border-radius:8px;background:var(--surface);padding:16px 18px;margin-bottom:12px;
+    cursor:pointer;font-family:inherit;color:var(--ink);
+  }
+  .mode-btn b{display:block;font-size:15px;margin-bottom:3px;}
+  .mode-btn span{font-size:12.5px;color:var(--ink-soft);}
+  .mode-btn.primary{border-color:var(--accent);}
+  .mode-btn.primary b{color:var(--accent-dark);}
+  .method-note{
+    margin-top:20px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--border);
+    padding-top:14px;
+  }
+
+  .loading-box{text-align:center;padding:30px 10px;}
+  .spinner{
+    width:34px;height:34px;border-radius:50%;border:3px solid var(--border);
+    border-top-color:var(--accent);margin:0 auto 16px;animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;}
+  .stop-btn{
+    border:1px solid var(--border);background:var(--surface);color:var(--ink);
+    border-radius:6px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:inherit;
+  }
+  .error-box{
+    background:var(--danger-soft);color:var(--danger);border-radius:8px;
+    padding:12px 14px;font-size:13.5px;margin-bottom:14px;text-align:left;
+  }
+  .error-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .error-actions button{
+    border-radius:6px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:inherit;border:1px solid var(--border);background:var(--surface);color:var(--ink);
+  }
+  .error-actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .progress-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12.5px;color:var(--ink-soft);}
+  .progress-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:18px;}
+  .progress-fill{height:100%;background:var(--accent);transition:width .25s;}
+  .topic-badge{
+    display:inline-block;font-size:11.5px;font-weight:700;color:var(--accent-dark);
+    background:var(--accent-soft);padding:4px 10px;border-radius:20px;margin-bottom:12px;
+  }
+  .question-text{font-size:16.5px;font-weight:600;margin-bottom:18px;}
+  .option-btn{
+    display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
+    border:1px solid var(--border);border-radius:8px;background:var(--surface);
+    padding:12px 14px;margin-bottom:10px;cursor:pointer;font-family:inherit;font-size:14px;color:var(--ink);
+  }
+  .option-btn:disabled{cursor:default;}
+  .option-btn:not(:disabled):hover{border-color:var(--accent);}
+  .opt-letter{
+    flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  }
+  .option-btn.correct{border-color:var(--success);background:var(--success-soft);}
+  .option-btn.correct .opt-letter{background:var(--success);color:#fff;}
+  .option-btn.incorrect{border-color:var(--danger);background:var(--danger-soft);}
+  .option-btn.incorrect .opt-letter{background:var(--danger);color:#fff;}
+  .explanation{border-radius:8px;padding:12px 14px;font-size:13.5px;margin:6px 0 18px;}
+  .explanation.ok{background:var(--success-soft);color:var(--success);}
+  .explanation.no{background:var(--danger-soft);color:var(--danger);}
+  .next-btn{
+    background:var(--accent);color:#fff;border:none;border-radius:7px;
+    padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+
+  .score-head{text-align:center;margin-bottom:22px;}
+  .score-num{font-size:42px;font-weight:700;color:var(--accent-dark);}
+  .level-badge{
+    display:inline-block;margin-top:6px;font-size:13px;font-weight:700;
+    padding:5px 14px;border-radius:20px;
+  }
+  .level-low{background:var(--danger-soft);color:var(--danger);}
+  .level-mid{background:var(--warning-soft);color:var(--warning);}
+  .level-good{background:var(--accent-soft);color:var(--accent-dark);}
+  .level-high{background:var(--success-soft);color:var(--success);}
+  .score-sub{font-size:13px;color:var(--ink-soft);margin-top:6px;}
+  .section-label{font-size:13.5px;font-weight:700;margin:22px 0 10px;color:var(--ink);}
+  .topic-row{margin-bottom:12px;}
+  .topic-row-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+  .topic-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .topic-bar-fill{height:100%;}
+  .bar-low{background:var(--danger);} .bar-mid{background:var(--warning);} .bar-good{background:var(--success);}
+  .rec-item{border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .rec-topic{font-size:13px;font-weight:700;color:var(--accent-dark);margin-bottom:3px;}
+  .rec-lab{font-size:13px;color:var(--ink-soft);}
+  .rec-empty{font-size:13.5px;color:var(--ink-soft);}
+  .restart-btn{
+    margin-top:22px;width:100%;border:1px solid var(--border);background:var(--surface);
+    color:var(--ink);border-radius:7px;padding:11px;font-size:14px;cursor:pointer;font-family:inherit;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>Тест уровня владения ИКТ</h1>
+    <p>Вопросы генерирует ИИ через сервер (ключ API хранится там же, не в этой странице). Проверка ответов и рекомендации — программный код, без участия модели.</p>
+  </header>
+
+  <section id="view-start" class="card">
+    <p class="start-lead">Тест из 40 вопросов по 8 темам ИКТ: системы счисления, логика, кодирование информации, алгоритмы, сети, базы данных, аппаратное обеспечение и ОС, информационная безопасность. По итогам — уровень владения и список тем с рекомендованными лабораторными работами.</p>
+
+    <button class="mode-btn primary" id="btn-full">
+      <b>Полный тест — 40 вопросов</b>
+      <span>15 вопросов генерируются программно (гарантированно верные), 25 — запрашиваются у сервера</span>
+    </button>
+    <button class="mode-btn" id="btn-basic">
+      <b>Быстрый тест — 15 вопросов (офлайн)</b>
+      <span>Только программно сгенерированные вопросы, без обращения к серверу</span>
+    </button>
+
+    <div class="method-note">
+      Как считается результат: правильность каждого ответа определяется сравнением выбранного варианта с заранее известным правильным индексом — это делает код страницы, а не модель. Для тем «Системы счисления», «Логика» и «Кодирование информации» верный ответ вычисляется напрямую (переводы систем счисления, булева алгебра, степени двойки).
+      Для остальных тем правильный индекс фиксируется на сервере в момент генерации и ещё раз проверяется там же перед отправкой на страницу — так исключаются вопросы без правильного варианта среди options.
+    </div>
+  </section>
+
+  <section id="view-loading" class="card hidden">
+    <div class="loading-box">
+      <div id="loading-idle" class="hidden">
+        <p class="loading-text">Подготовка вопросов…</p>
+      </div>
+      <div id="loading-generating" class="hidden">
+        <div class="spinner"></div>
+        <p class="loading-text" id="loading-text">Сервер запрашивает вопросы у модели… обычно 10–40 секунд.</p>
+        <button class="stop-btn" id="btn-stop">Остановить</button>
+      </div>
+      <div id="loading-error" class="hidden">
+        <div class="error-box" id="error-text"></div>
+        <div class="error-actions" id="error-actions"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-quiz" class="card hidden">
+    <div class="progress-head">
+      <span id="progress-text">Вопрос 1 из 40</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="topic-badge" id="topic-badge">Тема</div>
+    <div class="question-text" id="question-text">Текст вопроса</div>
+    <div id="options-wrap"></div>
+    <div class="explanation hidden" id="explanation-box"></div>
+    <button class="next-btn hidden" id="next-btn">Следующий вопрос</button>
+  </section>
+
+  <section id="view-results" class="card hidden">
+    <div class="score-head">
+      <div class="score-num" id="result-score">0%</div>
+      <div class="level-badge" id="result-level">Уровень</div>
+      <div class="score-sub" id="result-sub"></div>
+    </div>
+
+    <div class="section-label">Результат по темам</div>
+    <div id="topic-list"></div>
+
+    <div class="section-label">Рекомендуемые темы и лабораторные работы</div>
+    <div id="rec-wrap"></div>
+
+    <button class="restart-btn" id="restart-btn">Пройти тест заново</button>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Адрес сервера задан один раз здесь — менять нужно только эту строку.
+  var ENDPOINT = "https://ict-quiz-backend.onrender.com/api/generate-questions";
+
+  var LAB_MAP = {
+    "Системы счисления": "Лабораторная работа №1. Системы счисления и компьютерная арифметика",
+    "Логика": "Лабораторная работа №2. Алгебра логики и логические схемы",
+    "Кодирование информации": "Лабораторная работа №3. Измерение и кодирование информации",
+    "Алгоритмы и программирование": "Лабораторная работа №4. Основы алгоритмизации и программирования",
+    "Сети и Интернет": "Лабораторная работа №5. Компьютерные сети и Интернет-технологии",
+    "Базы данных": "Лабораторная работа №6. Проектирование и работа с базами данных",
+    "Аппаратное обеспечение и ОС": "Лабораторная работа №7. Архитектура ПК и операционные системы",
+    "Информационная безопасность": "Лабораторная работа №8. Основы информационной безопасности"
+  };
+  var TOPICS_LLM = ["Алгоритмы и программирование","Сети и Интернет","Базы данных","Аппаратное обеспечение и ОС","Информационная безопасность"];
+  var LETTERS = ["А","Б","В","Г"];
+  var abortCtl = null;
+  var state = { questions:[], current:0, answers:[], results:null };
+
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+    return a;
+  }
+  function makeMCQuestion(topic, questionText, correctValue, distractorFn, explanation){
+    var opts = [String(correctValue)];
+    var guard = 0;
+    while(opts.length<4 && guard<60){
+      var d = String(distractorFn());
+      if(opts.indexOf(d)===-1) opts.push(d);
+      guard++;
+    }
+    var padN = 1;
+    while(opts.length<4){ opts.push(String(correctValue)+"_"+(padN++)); }
+    opts = shuffle(opts);
+    var correctIndex = opts.indexOf(String(correctValue));
+    return {topic:topic, question:questionText, options:opts, correct_index:correctIndex, explanation:explanation};
+  }
+
+  function genNumberSystemsQuestions(n){
+    var qs = [];
+    var types = ["bin2dec","dec2bin","bin2oct","bin2hex","bits_needed"];
+    for(var i=0;i<n;i++){
+      var type = types[i % types.length];
+      if(type==="bin2dec"){
+        var dec = randInt(9,250);
+        var bin = dec.toString(2);
+        qs.push(makeMCQuestion("Системы счисления", "Какое десятичное число соответствует двоичному "+bin+"?", dec,
+          function(){ return dec + randInt(1,8)*(Math.random()<0.5?-1:1); },
+          bin+"\u2082 = "+dec+"\u2081\u2080 (сумма степеней двойки по разрядам)."));
+      } else if(type==="dec2bin"){
+        var dec2 = randInt(9,250);
+        var correctBin = dec2.toString(2);
+        qs.push(makeMCQuestion("Системы счисления", "Переведите десятичное число "+dec2+" в двоичную систему.", correctBin,
+          function(){ var d=correctBin.split(""); var idx=randInt(0,d.length-1); d[idx]=d[idx]==="0"?"1":"0"; return d.join(""); },
+          dec2+"\u2081\u2080 = "+correctBin+"\u2082."));
+      } else if(type==="bin2oct"){
+        var dec3 = randInt(9,500);
+        var bin3 = dec3.toString(2);
+        while(bin3.length % 3 !== 0) bin3 = "0"+bin3;
+        var correctOct = parseInt(bin3,2).toString(8);
+        qs.push(makeMCQuestion("Системы счисления", "Какое восьмеричное число соответствует двоичному "+bin3+"?", correctOct,
+          function(){ return (parseInt(correctOct,8)+randInt(1,6)).toString(8); },
+          bin3+"\u2082, группируя по 3 бита справа, даёт "+correctOct+"\u2088."));
+      } else if(type==="bin2hex"){
+        var dec4 = randInt(9,4000);
+        var bin4 = dec4.toString(2);
+        while(bin4.length % 4 !== 0) bin4 = "0"+bin4;
+        var correctHex = parseInt(bin4,2).toString(16).toUpperCase();
+        qs.push(makeMCQuestion("Системы счисления", "Какое шестнадцатеричное число соответствует двоичному "+bin4+"?", correctHex,
+          function(){ return (parseInt(correctHex,16)+randInt(1,10)).toString(16).toUpperCase(); },
+          bin4+"\u2082, группируя по 4 бита справа, даёт "+correctHex+"\u2081\u2086."));
+      } else {
+        var dec5 = randInt(5,300);
+        var bits = Math.floor(Math.log2(dec5))+1;
+        qs.push(makeMCQuestion("Системы счисления", "Сколько бит нужно для представления числа "+dec5+" в двоичной системе?", bits,
+          function(){ return bits + (Math.random()<0.5?-1:1)*randInt(1,2); },
+          "2^"+(bits-1)+" \u2264 "+dec5+" < 2^"+bits+", поэтому нужно "+bits+" бит."));
+      }
+    }
+    return qs;
+  }
+
+  var LOGIC_EXPRS = [
+    {label:"A И B", fn:function(a,b){return a&&b;}},
+    {label:"A ИЛИ B", fn:function(a,b){return a||b;}},
+    {label:"НЕ A", fn:function(a,b){return !a;}},
+    {label:"НЕ B", fn:function(a,b){return !b;}},
+    {label:"A И (НЕ B)", fn:function(a,b){return a&&!b;}},
+    {label:"(НЕ A) ИЛИ B", fn:function(a,b){return (!a)||b;}},
+    {label:"(НЕ A) И (НЕ B)", fn:function(a,b){return (!a)&&(!b);}},
+    {label:"A ИЛИ (НЕ B)", fn:function(a,b){return a||(!b);}},
+    {label:"A искл.ИЛИ B", fn:function(a,b){return (a?1:0)!==(b?1:0);}},
+    {label:"(НЕ A) искл.ИЛИ B", fn:function(a,b){return ((!a)?1:0)!==(b?1:0);}}
+  ];
+  function genLogicQuestions(n){
+    var qs = [];
+    for(var i=0;i<n;i++){
+      var A = Math.random()<0.5, B = Math.random()<0.5;
+      var pool = null, vals = null, attempts = 0;
+      while(attempts<30){
+        var candidate = shuffle(LOGIC_EXPRS).slice(0,4);
+        var v = candidate.map(function(e){ return e.fn(A,B); });
+        var trueCount = v.filter(Boolean).length;
+        if(trueCount===1){ pool=candidate; vals=v; break; }
+        attempts++;
+      }
+      if(!pool){
+        var trueExprs = LOGIC_EXPRS.filter(function(e){ return e.fn(A,B); });
+        var falseExprs = shuffle(LOGIC_EXPRS.filter(function(e){ return !e.fn(A,B); })).slice(0,3);
+        pool = shuffle([trueExprs[0]].concat(falseExprs));
+        vals = pool.map(function(e){ return e.fn(A,B); });
+      }
+      var correctIdx = vals.indexOf(true);
+      var options = pool.map(function(e){ return e.label; });
+      qs.push({
+        topic: "Логика",
+        question: "Даны A = "+(A?1:0)+", B = "+(B?1:0)+". Какое из выражений истинно (равно 1)?",
+        options: options,
+        correct_index: correctIdx,
+        explanation: "При A="+(A?1:0)+", B="+(B?1:0)+" верно только «"+options[correctIdx]+"» = 1; остальные выражения при этих значениях равны 0."
+      });
+    }
+    return qs;
+  }
+
+  function genEncodingQuestions(n){
+    var qs = [];
+    var types = ["bits_for_symbols","kb_to_b","mb_to_kb","bits_to_bytes","values_for_bits"];
+    for(var i=0;i<n;i++){
+      var type = types[i % types.length];
+      if(type==="bits_for_symbols"){
+        var N = randInt(5,200);
+        var bits = Math.ceil(Math.log2(N));
+        qs.push(makeMCQuestion("Кодирование информации", "Сколько бит минимально необходимо, чтобы закодировать алфавит из "+N+" различных символов?", bits,
+          function(){ return bits + (Math.random()<0.5?-1:1)*randInt(1,2); },
+          "2^"+(bits-1)+" < "+N+" \u2264 2^"+bits+", поэтому минимально нужно "+bits+" бит."));
+      } else if(type==="kb_to_b"){
+        var kb = randInt(2,64);
+        var correctB = kb*1024;
+        qs.push(makeMCQuestion("Кодирование информации", "Сколько байт в "+kb+" Кбайт (считая 1 Кбайт = 1024 байт)?", correctB,
+          function(){ return kb*1000 + randInt(1,50); },
+          kb+" \u00d7 1024 = "+correctB+" байт."));
+      } else if(type==="mb_to_kb"){
+        var mb = randInt(2,64);
+        var correctKb = mb*1024;
+        qs.push(makeMCQuestion("Кодирование информации", "Сколько Кбайт в "+mb+" Мбайт?", correctKb,
+          function(){ return mb*1000 + randInt(1,50); },
+          mb+" \u00d7 1024 = "+correctKb+" Кбайт."));
+      } else if(type==="bits_to_bytes"){
+        var bytes = randInt(2,200);
+        var bitsVal = bytes*8;
+        qs.push(makeMCQuestion("Кодирование информации", "Объём данных — "+bitsVal+" бит. Сколько это байт?", bytes,
+          function(){ return bytes + randInt(1,6); },
+          bitsVal+" / 8 = "+bytes+" байт."));
+      } else {
+        var k = randInt(3,10);
+        var correctVals = Math.pow(2,k);
+        qs.push(makeMCQuestion("Кодирование информации", "Сколько различных значений можно закодировать с помощью "+k+" бит?", correctVals,
+          function(){ return Math.random()<0.5 ? Math.pow(2,k-1) : Math.pow(2,k)+randInt(1,4); },
+          "Количество комбинаций = 2^"+k+" = "+correctVals+"."));
+      }
+    }
+    return qs;
+  }
+
+  function buildProceduralQuestions(){
+    return genNumberSystemsQuestions(5).concat(genLogicQuestions(5), genEncodingQuestions(5));
+  }
+
+  function validateLLMQuestions(data){
+    if(!Array.isArray(data)) return [];
+    return data.filter(function(q){
+      return q && typeof q.question==="string" && q.question.trim() &&
+        Array.isArray(q.options) && q.options.length===4 &&
+        q.options.every(function(o){ return typeof o==="string" && o.trim(); }) &&
+        Number.isInteger(q.correct_index) && q.correct_index>=0 && q.correct_index<=3 &&
+        typeof q.topic==="string" && TOPICS_LLM.indexOf(q.topic)!==-1 &&
+        typeof q.explanation==="string";
+    }).map(function(q){
+      return {topic:q.topic, question:q.question, options:q.options, correct_index:q.correct_index, explanation:q.explanation};
+    });
+  }
+
+  async function generateLLMQuestions(signal){
+    var resp;
+    try{
+      resp = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({topics: TOPICS_LLM, perTopic: 5}),
+        signal: signal
+      });
+    }catch(e){
+      if(e && e.name==="AbortError") throw {code:"cancelled"};
+      throw {code:"network_error", message:String(e && e.message || e)};
+    }
+    if(!resp.ok){
+      var errBody = null;
+      try{ errBody = await resp.json(); }catch(e2){}
+      throw {code:"http_error", status:resp.status, message: errBody && errBody.message};
+    }
+    var data;
+    try{ data = await resp.json(); }catch(e3){ throw {code:"invalid_json"}; }
+    return validateLLMQuestions(data);
+  }
+
+  var els = {
+    views: {
+      start: document.getElementById("view-start"),
+      loading: document.getElementById("view-loading"),
+      quiz: document.getElementById("view-quiz"),
+      results: document.getElementById("view-results")
+    },
+    fullBtn: document.getElementById("btn-full"),
+    basicBtn: document.getElementById("btn-basic"),
+    loadingIdle: document.getElementById("loading-idle"),
+    loadingGenerating: document.getElementById("loading-generating"),
+    loadingText: document.getElementById("loading-text"),
+    loadingError: document.getElementById("loading-error"),
+    errorText: document.getElementById("error-text"),
+    errorActions: document.getElementById("error-actions"),
+    stopBtn: document.getElementById("btn-stop"),
+    progressText: document.getElementById("progress-text"),
+    progressFill: document.getElementById("progress-fill"),
+    topicBadge: document.getElementById("topic-badge"),
+    questionText: document.getElementById("question-text"),
+    optionsWrap: document.getElementById("options-wrap"),
+    explanationBox: document.getElementById("explanation-box"),
+    nextBtn: document.getElementById("next-btn"),
+    resultScore: document.getElementById("result-score"),
+    resultLevel: document.getElementById("result-level"),
+    resultSub: document.getElementById("result-sub"),
+    topicList: document.getElementById("topic-list"),
+    recWrap: document.getElementById("rec-wrap"),
+    restartBtn: document.getElementById("restart-btn")
+  };
+
+  function showView(name){
+    Object.keys(els.views).forEach(function(k){
+      els.views[k].classList.toggle("hidden", k!==name);
+    });
+  }
+
+  function loadingState(mode){
+    els.loadingIdle.classList.toggle("hidden", mode!=="idle");
+    els.loadingGenerating.classList.toggle("hidden", mode!=="generating");
+    els.loadingError.classList.toggle("hidden", mode!=="error");
+  }
+
+  function errorMessage(err){
+    var code = err && err.code;
+    switch(code){
+      case "network_error": return "Не удалось соединиться с сервером (проверь, что он запущен, и CORS).";
+      case "http_error": return "Сервер вернул ошибку"+(err.status ? " (HTTP "+err.status+")" : "")+(err.message ? ": "+err.message : ".");
+      case "invalid_json": return "Сервер вернул некорректные данные (не JSON или не тот формат).";
+      default: return "Не удалось получить вопросы (техническая ошибка).";
+    }
+  }
+
+  function renderError(err, procedural){
+    loadingState("error");
+    els.errorText.textContent = errorMessage(err);
+    els.errorActions.innerHTML = "";
+    var retryBtn = document.createElement("button");
+    retryBtn.className = "primary";
+    retryBtn.textContent = "Повторить";
+    retryBtn.onclick = function(){ startTest("full"); };
+    els.errorActions.appendChild(retryBtn);
+    var fallbackBtn = document.createElement("button");
+    fallbackBtn.textContent = "Продолжить без ИИ (15 вопросов)";
+    fallbackBtn.onclick = function(){ finalizeQuestions(procedural); };
+    els.errorActions.appendChild(fallbackBtn);
+    var backBtn = document.createElement("button");
+    backBtn.textContent = "Назад";
+    backBtn.onclick = function(){ showView("start"); };
+    els.errorActions.appendChild(backBtn);
+  }
+
+  async function startTest(mode){
+    showView("loading");
+    var procedural = buildProceduralQuestions();
+    if(mode==="basic"){
+      finalizeQuestions(procedural);
+      return;
+    }
+    loadingState("generating");
+    abortCtl = new AbortController();
+    try{
+      var llmQs = await generateLLMQuestions(abortCtl.signal);
+      if(llmQs.length < 10){ throw {code:"invalid_json"}; }
+      finalizeQuestions(shuffle(procedural.concat(llmQs)));
+    }catch(err){
+      if(err && err.code==="cancelled"){ showView("start"); return; }
+      renderError(err||{}, procedural);
+    }
+  }
+
+  function finalizeQuestions(questions){
+    state.questions = questions;
+    state.current = 0;
+    state.answers = new Array(questions.length).fill(null);
+    showView("quiz");
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    var q = state.questions[state.current];
+    var total = state.questions.length;
+    els.progressText.textContent = "Вопрос "+(state.current+1)+" из "+total;
+    els.progressFill.style.width = Math.round((state.current/total)*100)+"%";
+    els.topicBadge.textContent = q.topic;
+    els.questionText.textContent = q.question;
+    els.optionsWrap.innerHTML = "";
+    var answered = state.answers[state.current];
+
+    q.options.forEach(function(opt, idx){
+      var btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.disabled = answered!==null;
+      var letterSpan = document.createElement("span");
+      letterSpan.className = "opt-letter";
+      letterSpan.textContent = LETTERS[idx];
+      var textSpan = document.createElement("span");
+      textSpan.className = "opt-text";
+      textSpan.textContent = opt;
+      btn.appendChild(letterSpan);
+      btn.appendChild(textSpan);
+      if(answered!==null){
+        if(idx===q.correct_index) btn.classList.add("correct");
+        else if(idx===answered) btn.classList.add("incorrect");
+      }
+      btn.onclick = function(){ selectOption(idx); };
+      els.optionsWrap.appendChild(btn);
+    });
+
+    if(answered!==null){
+      var wasCorrect = answered===q.correct_index;
+      els.explanationBox.classList.remove("hidden");
+      els.explanationBox.className = "explanation " + (wasCorrect ? "ok" : "no");
+      els.explanationBox.textContent = (wasCorrect ? "Верно. " : "Неверно. ") + q.explanation;
+      els.nextBtn.classList.remove("hidden");
+      els.nextBtn.textContent = (state.current===total-1) ? "Завершить тест" : "Следующий вопрос";
+    } else {
+      els.explanationBox.classList.add("hidden");
+      els.nextBtn.classList.add("hidden");
+    }
+  }
+
+  function selectOption(idx){
+    if(state.answers[state.current]!==null) return;
+    state.answers[state.current] = idx;
+    renderQuestion();
+  }
+
+  function computeResults(){
+    var byTopic = {};
+    state.questions.forEach(function(q, i){
+      if(!byTopic[q.topic]) byTopic[q.topic] = {correct:0, total:0};
+      byTopic[q.topic].total++;
+      if(state.answers[i]===q.correct_index) byTopic[q.topic].correct++;
+    });
+    var totalCorrect = 0, totalQ = state.questions.length;
+    Object.keys(byTopic).forEach(function(t){ totalCorrect += byTopic[t].correct; });
+    var overallPercent = Math.round((totalCorrect/totalQ)*100);
+    var level;
+    if(overallPercent<40) level = "Начальный";
+    else if(overallPercent<65) level = "Базовый";
+    else if(overallPercent<85) level = "Средний";
+    else level = "Продвинутый";
+    var topicRows = Object.keys(byTopic).map(function(t){
+      var v = byTopic[t];
+      return {topic:t, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
+    }).sort(function(a,b){ return a.percent-b.percent; });
+    state.results = {byTopic:topicRows, overallPercent:overallPercent, level:level, totalCorrect:totalCorrect, totalQ:totalQ};
+  }
+
+  function levelClass(level){
+    return {"Начальный":"low","Базовый":"mid","Средний":"good","Продвинутый":"high"}[level] || "mid";
+  }
+  function barClass(p){ return p<40 ? "bar-low" : (p<70 ? "bar-mid" : "bar-good"); }
+
+  function finishTest(){
+    computeResults();
+    showView("results");
+    renderResults();
+  }
+
+  function renderResults(){
+    var r = state.results;
+    els.resultScore.textContent = r.overallPercent+"%";
+    els.resultLevel.textContent = r.level;
+    els.resultLevel.className = "level-badge level-"+levelClass(r.level);
+    els.resultSub.textContent = "Правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
+
+    els.topicList.innerHTML = "";
+    r.byTopic.forEach(function(t){
+      var row = document.createElement("div");
+      row.className = "topic-row";
+      var head = document.createElement("div");
+      head.className = "topic-row-head";
+      var headLeft = document.createElement("span");
+      headLeft.textContent = t.topic;
+      var headRight = document.createElement("span");
+      headRight.textContent = t.correct+"/"+t.total+" ("+t.percent+"%)";
+      head.appendChild(headLeft);
+      head.appendChild(headRight);
+      var bar = document.createElement("div");
+      bar.className = "topic-bar";
+      var fill = document.createElement("div");
+      fill.className = "topic-bar-fill " + barClass(t.percent);
+      fill.style.width = t.percent+"%";
+      bar.appendChild(fill);
+      row.appendChild(head);
+      row.appendChild(bar);
+      els.topicList.appendChild(row);
+    });
+
+    var weak = r.byTopic.filter(function(t){ return t.percent<70; });
+    els.recWrap.innerHTML = "";
+    if(weak.length===0){
+      var p = document.createElement("p");
+      p.className = "rec-empty";
+      p.textContent = "Все темы освоены на хорошем уровне — можно переходить к практическим проектным работам.";
+      els.recWrap.appendChild(p);
+    } else {
+      weak.forEach(function(t){
+        var item = document.createElement("div");
+        item.className = "rec-item";
+        var lab = LAB_MAP[t.topic] || ("Повторение темы «"+t.topic+"»");
+        var topicDiv = document.createElement("div");
+        topicDiv.className = "rec-topic";
+        topicDiv.textContent = t.topic+" — "+t.percent+"%";
+        var labDiv = document.createElement("div");
+        labDiv.className = "rec-lab";
+        labDiv.textContent = lab;
+        item.appendChild(topicDiv);
+        item.appendChild(labDiv);
+        els.recWrap.appendChild(item);
+      });
+    }
+  }
+
+  els.fullBtn.onclick = function(){ startTest("full"); };
+  els.basicBtn.onclick = function(){ startTest("basic"); };
+  els.restartBtn.onclick = function(){ showView("start"); };
+  els.nextBtn.onclick = function(){
+    if(state.current < state.questions.length-1){
+      state.current++;
+      renderQuestion();
+    } else {
+      finishTest();
+    }
+  };
+  els.stopBtn.onclick = function(){ if(abortCtl) abortCtl.abort(); };
+
+  loadingState("idle");
+  showView("start");
+})();
+</script>
+</body>
+</html>
