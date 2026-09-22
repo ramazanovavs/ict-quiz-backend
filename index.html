@@ -272,6 +272,35 @@
     rk2: { weeks: [9,10,11,12,13,14,15], totalQuestions: 30, label: "2 рубежный контроль (недели 9–15)" }
   };
   var LETTERS = ["А","Б","В","Г"];
+
+  // Официальная шкала оценивания из силлабуса (стр. 208): проценты → числовой
+  // эквивалент, буквенный эквивалент, традиционная оценка. Проверено по PDF —
+  // границы описательных категорий (Хорошо/Удовлетворительно и т.д.) охватывают
+  // несколько буквенных строк, а не только первую.
+  var GRADE_SCALE = [
+    { min:95, max:100, gpa:4.0,  letter:"A",  desc:"Очень хорошо" },
+    { min:90, max:94,  gpa:3.67, letter:"A-", desc:"Очень хорошо" },
+    { min:85, max:89,  gpa:3.33, letter:"B+", desc:"Хорошо" },
+    { min:80, max:84,  gpa:3.0,  letter:"B",  desc:"Хорошо" },
+    { min:75, max:79,  gpa:2.67, letter:"B-", desc:"Хорошо" },
+    { min:70, max:74,  gpa:2.33, letter:"C+", desc:"Хорошо" },
+    { min:65, max:69,  gpa:2.0,  letter:"C",  desc:"Удовлетворительно" },
+    { min:60, max:64,  gpa:1.67, letter:"C-", desc:"Удовлетворительно" },
+    { min:55, max:59,  gpa:1.33, letter:"D+", desc:"Удовлетворительно" },
+    { min:50, max:54,  gpa:1.0,  letter:"D",  desc:"Удовлетворительно" },
+    { min:25, max:49,  gpa:0.5,  letter:"FX", desc:"Неудовлетворительно" },
+    { min:0,  max:24,  gpa:0,    letter:"F",  desc:"Неудовлетворительно" }
+  ];
+  function gradeFor(percent){
+    for(var i=0;i<GRADE_SCALE.length;i++){
+      var g = GRADE_SCALE[i];
+      if(percent>=g.min && percent<=g.max) return g;
+    }
+    return GRADE_SCALE[GRADE_SCALE.length-1];
+  }
+  function gradeClass(desc){
+    return {"Очень хорошо":"high","Хорошо":"good","Удовлетворительно":"mid","Неудовлетворительно":"low"}[desc] || "mid";
+  }
   var abortCtl = null;
   var state = { modeConfig:null, questions:[], current:0, answers:[], results:null };
 
@@ -478,21 +507,14 @@
     var totalCorrect = 0, totalQ = state.questions.length;
     Object.keys(byWeek).forEach(function(w){ totalCorrect += byWeek[w].correct; });
     var overallPercent = Math.round((totalCorrect/totalQ)*100);
-    var level;
-    if(overallPercent<40) level = "Начальный";
-    else if(overallPercent<65) level = "Базовый";
-    else if(overallPercent<85) level = "Средний";
-    else level = "Продвинутый";
+    var grade = gradeFor(overallPercent);
     var weekRows = Object.keys(byWeek).map(function(w){
       var v = byWeek[w];
       return {week:v.week, topic:v.topic, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
     }).sort(function(a,b){ return a.percent-b.percent || a.week-b.week; });
-    state.results = {byWeek:weekRows, overallPercent:overallPercent, level:level, totalCorrect:totalCorrect, totalQ:totalQ};
+    state.results = {byWeek:weekRows, overallPercent:overallPercent, grade:grade, totalCorrect:totalCorrect, totalQ:totalQ};
   }
 
-  function levelClass(level){
-    return {"Начальный":"low","Базовый":"mid","Средний":"good","Продвинутый":"high"}[level] || "mid";
-  }
   function barClass(p){ return p<40 ? "bar-low" : (p<70 ? "bar-mid" : "bar-good"); }
 
   function finishTest(){
@@ -504,8 +526,8 @@
   function renderResults(){
     var r = state.results;
     els.resultScore.textContent = r.overallPercent+"%";
-    els.resultLevel.textContent = r.level;
-    els.resultLevel.className = "level-badge level-"+levelClass(r.level);
+    els.resultLevel.textContent = r.grade.letter+" · "+r.grade.gpa.toFixed(2)+" · "+r.grade.desc;
+    els.resultLevel.className = "level-badge level-"+gradeClass(r.grade.desc);
     els.resultSub.textContent = state.modeConfig.label + " · правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
 
     els.topicList.innerHTML = "";
