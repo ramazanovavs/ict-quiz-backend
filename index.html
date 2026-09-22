@@ -153,18 +153,27 @@
 
   <header class="top">
     <h1>Тест уровня владения ИКТ</h1>
-    <p>По силлабусу курса (15 недель). </p>
+    <p>По силлабусу курса (15 недель). Вопросы генерирует ИИ через сервер. Проверка ответов и рекомендации — программный код, без участия модели.</p>
   </header>
 
   <section id="view-start" class="card">
-    <p class="start-lead">Тест из 30 вопросов - по 2 вопроса на каждую из 15 недель курса. По итогам - уровень владения и список недель с рекомендованными лабораторными работами.</p>
+    <p class="start-lead">Три режима: полный тест по всему курсу или один из двух рубежных контролей (по 30 вопросов на каждый, распределены поровну между неделями). По итогам — уровень владения и список недель с рекомендованными лабораторными работами.</p>
 
     <button class="mode-btn primary" id="btn-full">
-      <b>Начать тест - 30 вопросов</b>
-      <span>По 2 вопроса на каждую из 15 недель</span>
+      <b>Весь курс — 30 вопросов</b>
+      <span>По всем 15 неделям курса</span>
+    </button>
+    <button class="mode-btn" id="btn-rk1">
+      <b>1 рубежный контроль — 30 вопросов</b>
+      <span>Недели 1–8</span>
+    </button>
+    <button class="mode-btn" id="btn-rk2">
+      <b>2 рубежный контроль — 30 вопросов</b>
+      <span>Недели 9–15</span>
     </button>
 
     <div class="method-note">
+      Как считается результат: правильность каждого ответа определяется сравнением выбранного варианта с заранее известным правильным индексом — это делает код страницы, а не модель. Вопросы и правильный индекс генерирует ИИ на сервере по материалу силлабуса каждой недели (с возможностью усложнять и расширять тему); сервер проверяет форму ответа (4 варианта, индекс 0–3, допустимый номер недели) и сам подставляет официальное название темы недели — независимо от того, что написала модель в поле topic.
     </div>
   </section>
 
@@ -248,9 +257,15 @@
     9: null, 10: null, 11: null, 12: null, 13: null, 14: null, 15: null
   };
 
+  // Режимы теста: null в weeks означает «все 15 недель» (сервер сам это понимает).
+  var TEST_MODES = {
+    full: { weeks: null, totalQuestions: 30, label: "Весь курс" },
+    rk1: { weeks: [1,2,3,4,5,6,7,8], totalQuestions: 30, label: "1 рубежный контроль (недели 1–8)" },
+    rk2: { weeks: [9,10,11,12,13,14,15], totalQuestions: 30, label: "2 рубежный контроль (недели 9–15)" }
+  };
   var LETTERS = ["А","Б","В","Г"];
   var abortCtl = null;
-  var state = { questions:[], current:0, answers:[], results:null };
+  var state = { mode:"full", questions:[], current:0, answers:[], results:null };
 
   function shuffle(arr){
     var a = arr.slice();
@@ -279,13 +294,16 @@
     });
   }
 
-  async function generateLLMQuestions(signal){
+  async function generateLLMQuestions(signal, mode){
+    var cfg = TEST_MODES[mode];
+    var body = { totalQuestions: cfg.totalQuestions };
+    if(cfg.weeks) body.weeks = cfg.weeks;
     var resp;
     try{
       resp = await fetch(ENDPOINT, {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({perWeek: 2}),
+        body: JSON.stringify(body),
         signal: signal
       });
     }catch(e){
@@ -310,6 +328,8 @@
       results: document.getElementById("view-results")
     },
     fullBtn: document.getElementById("btn-full"),
+    rk1Btn: document.getElementById("btn-rk1"),
+    rk2Btn: document.getElementById("btn-rk2"),
     loadingGenerating: document.getElementById("loading-generating"),
     loadingText: document.getElementById("loading-text"),
     loadingError: document.getElementById("loading-error"),
@@ -359,7 +379,7 @@
     var retryBtn = document.createElement("button");
     retryBtn.className = "primary";
     retryBtn.textContent = "Повторить";
-    retryBtn.onclick = function(){ startTest(); };
+    retryBtn.onclick = function(){ startTest(state.mode); };
     els.errorActions.appendChild(retryBtn);
     var backBtn = document.createElement("button");
     backBtn.textContent = "Назад";
@@ -367,12 +387,13 @@
     els.errorActions.appendChild(backBtn);
   }
 
-  async function startTest(){
+  async function startTest(mode){
+    state.mode = mode;
     showView("loading");
     loadingState("generating");
     abortCtl = new AbortController();
     try{
-      var llmQs = await generateLLMQuestions(abortCtl.signal);
+      var llmQs = await generateLLMQuestions(abortCtl.signal, mode);
       if(llmQs.length < 15){ throw {code:"invalid_json"}; }
       finalizeQuestions(shuffle(llmQs));
     }catch(err){
@@ -476,7 +497,7 @@
     els.resultScore.textContent = r.overallPercent+"%";
     els.resultLevel.textContent = r.level;
     els.resultLevel.className = "level-badge level-"+levelClass(r.level);
-    els.resultSub.textContent = "Правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
+    els.resultSub.textContent = TEST_MODES[state.mode].label + " · правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
 
     els.topicList.innerHTML = "";
     r.byWeek.forEach(function(w){
@@ -535,7 +556,9 @@
     }
   }
 
-  els.fullBtn.onclick = function(){ startTest(); };
+  els.fullBtn.onclick = function(){ startTest("full"); };
+  els.rk1Btn.onclick = function(){ startTest("rk1"); };
+  els.rk2Btn.onclick = function(){ startTest("rk2"); };
   els.restartBtn.onclick = function(){ showView("start"); };
   els.nextBtn.onclick = function(){
     if(state.current < state.questions.length-1){
