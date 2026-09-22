@@ -45,13 +45,24 @@ const WEEK_TOPICS = [
     material: 'Экосистема ИТ-предпринимательства, поддержка стартапов; программы акселерации и инкубации; перспективы развития электронных технологий. Подтема: инновационное образование.' }
 ];
 
-function buildPrompt(weeks, perWeek) {
-  const weeksBlock = weeks
-    .map((w) => `Неделя ${w.week} — «${w.topic}»\nМатериал из силлабуса: ${w.material}`)
+function distributeCounts(n, total) {
+  // Делит total вопросов между n неделями как можно равномернее:
+  // часть недель получает на один вопрос больше, если total не делится нацело.
+  const base = Math.floor(total / n);
+  const remainder = total % n;
+  const counts = new Array(n).fill(base);
+  for (let i = 0; i < remainder; i++) counts[i] += 1;
+  return counts;
+}
+
+function buildPrompt(weeksWithCounts) {
+  const total = weeksWithCounts.reduce((s, w) => s + w.count, 0);
+  const weeksBlock = weeksWithCounts
+    .map((w) => `Неделя ${w.week} — «${w.topic}» (сгенерировать ровно ${w.count} вопрос(а/ов) для этой недели)\nМатериал из силлабуса: ${w.material}`)
     .join('\n\n');
   return `Ты — генератор тестовых вопросов по дисциплине «Информационно-коммуникационные технологии» (ИКТ), составленный по силлабусу курса (учебные недели, Западно-Казахстанский университет им. М. Утемисова).
 
-Для КАЖДОЙ из следующих ${weeks.length} недель сгенерируй ровно ${perWeek} вопрос(ов) с одним правильным ответом из четырёх вариантов — итого ровно ${weeks.length * perWeek} вопросов:
+Ниже перечислены недели курса, для каждой указано ровно сколько вопросов нужно сгенерировать. Всего по всем неделям вместе — ровно ${total} вопросов с одним правильным ответом из четырёх вариантов:
 
 ${weeksBlock}
 
@@ -62,7 +73,7 @@ ${weeksBlock}
 4. У каждого вопроса ровно 4 варианта в поле "options" и ровно один правильный.
 5. "correct_index" — индекс правильного варианта (0-3), точно соответствующий содержимому options.
 6. "week" — номер недели (целое число), к которой относится вопрос, точно как указано выше.
-7. Прежде чем вернуть ответ, проверь для каждого вопроса, что среди 4 вариантов есть ровно один верный и он указан в correct_index.
+7. Прежде чем вернуть ответ, проверь для каждого вопроса, что среди 4 вариантов есть ровно один верный и он указан в correct_index, и что число вопросов по каждой неделе точно совпадает с указанным.
 
 Верни ТОЛЬКО JSON-массив (без markdown, без пояснений вне JSON) из объектов строго такого вида:
 {"week": 1, "topic": "название темы недели дословно", "question": "текст вопроса", "options": ["вариант1","вариант2","вариант3","вариант4"], "correct_index": 0, "explanation": "краткое объяснение правильного ответа в 1-2 предложениях"}`;
@@ -123,7 +134,10 @@ app.post('/api/generate-questions', async (req, res) => {
       Array.isArray(req.body && req.body.weeks) && req.body.weeks.length
         ? WEEK_TOPICS.filter((w) => req.body.weeks.includes(w.week))
         : WEEK_TOPICS;
-    const perWeek = Number(req.body && req.body.perWeek) || 2;
+    const totalQuestions = Number(req.body && req.body.totalQuestions)
+      || requestedWeeks.length * (Number(req.body && req.body.perWeek) || 2);
+    const counts = distributeCounts(requestedWeeks.length, totalQuestions);
+    const weeksWithCounts = requestedWeeks.map((w, i) => Object.assign({}, w, { count: counts[i] }));
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -132,7 +146,7 @@ app.post('/api/generate-questions', async (req, res) => {
         .json({ error: 'server_misconfigured', message: 'OPENAI_API_KEY не задан на сервере (.env)' });
     }
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-    const prompt = buildPrompt(requestedWeeks, perWeek);
+    const prompt = buildPrompt(weeksWithCounts);
 
     const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
