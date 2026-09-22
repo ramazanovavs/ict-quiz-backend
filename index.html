@@ -61,11 +61,17 @@
   .mode-btn span{font-size:12.5px;color:var(--ink-soft);}
   .mode-btn.primary{border-color:var(--accent);}
   .mode-btn.primary b{color:var(--accent-dark);}
-  .method-note{
-    margin-top:20px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--border);
-    padding-top:14px;
+  .week-picker{margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+  .week-picker label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;}
+  .week-picker-row{display:flex;gap:8px;}
+  .week-picker-row select{
+    flex:1;border:1px solid var(--border);border-radius:6px;padding:9px 10px;
+    font-size:13.5px;font-family:inherit;background:var(--surface);color:var(--ink);
   }
-  .week-list{font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;line-height:1.7;}
+  .week-picker-row button{
+    border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;
+    padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
 
   .loading-box{text-align:center;padding:30px 10px;}
   .spinner{
@@ -153,7 +159,6 @@
 
   <header class="top">
     <h1>Тест уровня владения ИКТ</h1>
-    <p>По силлабусу курса (15 недель). Вопросы генерирует ИИ через сервер. Проверка ответов и рекомендации — программный код, без участия модели.</p>
   </header>
 
   <section id="view-start" class="card">
@@ -161,7 +166,6 @@
 
     <button class="mode-btn primary" id="btn-full">
       <b>Весь курс — 30 вопросов</b>
-      <span>По всем 15 неделям курса</span>
     </button>
     <button class="mode-btn" id="btn-rk1">
       <b>1 рубежный контроль — 30 вопросов</b>
@@ -172,8 +176,12 @@
       <span>Недели 9–15</span>
     </button>
 
-    <div class="method-note">
-      Как считается результат: правильность каждого ответа определяется сравнением выбранного варианта с заранее известным правильным индексом — это делает код страницы, а не модель. Вопросы и правильный индекс генерирует ИИ на сервере по материалу силлабуса каждой недели (с возможностью усложнять и расширять тему); сервер проверяет форму ответа (4 варианта, индекс 0–3, допустимый номер недели) и сам подставляет официальное название темы недели — независимо от того, что написала модель в поле topic.
+    <div class="week-picker">
+      <label for="week-select">Тест по одной неделе — 20 вопросов</label>
+      <div class="week-picker-row">
+        <select id="week-select"></select>
+        <button id="btn-week">Начать</button>
+      </div>
     </div>
   </section>
 
@@ -181,7 +189,7 @@
     <div class="loading-box">
       <div id="loading-generating">
         <div class="spinner"></div>
-        <p class="loading-text" id="loading-text">Сервер запрашивает вопросы у модели по всем 15 неделям… обычно 15–60 секунд.</p>
+        <p class="loading-text" id="loading-text">Сервер запрашивает вопросы у модели… обычно 15–60 секунд.</p>
         <button class="stop-btn" id="btn-stop">Остановить</button>
       </div>
       <div id="loading-error" class="hidden">
@@ -265,7 +273,7 @@
   };
   var LETTERS = ["А","Б","В","Г"];
   var abortCtl = null;
-  var state = { mode:"full", questions:[], current:0, answers:[], results:null };
+  var state = { modeConfig:null, questions:[], current:0, answers:[], results:null };
 
   function shuffle(arr){
     var a = arr.slice();
@@ -294,8 +302,7 @@
     });
   }
 
-  async function generateLLMQuestions(signal, mode){
-    var cfg = TEST_MODES[mode];
+  async function generateLLMQuestions(signal, cfg){
     var body = { totalQuestions: cfg.totalQuestions };
     if(cfg.weeks) body.weeks = cfg.weeks;
     var resp;
@@ -330,6 +337,8 @@
     fullBtn: document.getElementById("btn-full"),
     rk1Btn: document.getElementById("btn-rk1"),
     rk2Btn: document.getElementById("btn-rk2"),
+    weekSelect: document.getElementById("week-select"),
+    weekBtn: document.getElementById("btn-week"),
     loadingGenerating: document.getElementById("loading-generating"),
     loadingText: document.getElementById("loading-text"),
     loadingError: document.getElementById("loading-error"),
@@ -379,7 +388,7 @@
     var retryBtn = document.createElement("button");
     retryBtn.className = "primary";
     retryBtn.textContent = "Повторить";
-    retryBtn.onclick = function(){ startTest(state.mode); };
+    retryBtn.onclick = function(){ startTest(state.modeConfig); };
     els.errorActions.appendChild(retryBtn);
     var backBtn = document.createElement("button");
     backBtn.textContent = "Назад";
@@ -387,14 +396,14 @@
     els.errorActions.appendChild(backBtn);
   }
 
-  async function startTest(mode){
-    state.mode = mode;
+  async function startTest(cfg){
+    state.modeConfig = cfg;
     showView("loading");
     loadingState("generating");
     abortCtl = new AbortController();
     try{
-      var llmQs = await generateLLMQuestions(abortCtl.signal, mode);
-      if(llmQs.length < 15){ throw {code:"invalid_json"}; }
+      var llmQs = await generateLLMQuestions(abortCtl.signal, cfg);
+      if(llmQs.length < Math.max(5, Math.floor(cfg.totalQuestions/2))){ throw {code:"invalid_json"}; }
       finalizeQuestions(shuffle(llmQs));
     }catch(err){
       if(err && err.code==="cancelled"){ showView("start"); return; }
@@ -497,7 +506,7 @@
     els.resultScore.textContent = r.overallPercent+"%";
     els.resultLevel.textContent = r.level;
     els.resultLevel.className = "level-badge level-"+levelClass(r.level);
-    els.resultSub.textContent = TEST_MODES[state.mode].label + " · правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
+    els.resultSub.textContent = state.modeConfig.label + " · правильных ответов: "+r.totalCorrect+" из "+r.totalQ;
 
     els.topicList.innerHTML = "";
     r.byWeek.forEach(function(w){
@@ -556,9 +565,13 @@
     }
   }
 
-  els.fullBtn.onclick = function(){ startTest("full"); };
-  els.rk1Btn.onclick = function(){ startTest("rk1"); };
-  els.rk2Btn.onclick = function(){ startTest("rk2"); };
+  els.fullBtn.onclick = function(){ startTest(TEST_MODES.full); };
+  els.rk1Btn.onclick = function(){ startTest(TEST_MODES.rk1); };
+  els.rk2Btn.onclick = function(){ startTest(TEST_MODES.rk2); };
+  els.weekBtn.onclick = function(){
+    var w = Number(els.weekSelect.value);
+    startTest({ weeks: [w], totalQuestions: 20, label: "Неделя "+w+" — "+WEEK_TITLES[w] });
+  };
   els.restartBtn.onclick = function(){ showView("start"); };
   els.nextBtn.onclick = function(){
     if(state.current < state.questions.length-1){
@@ -569,6 +582,13 @@
     }
   };
   els.stopBtn.onclick = function(){ if(abortCtl) abortCtl.abort(); };
+
+  Object.keys(WEEK_TITLES).forEach(function(w){
+    var opt = document.createElement("option");
+    opt.value = w;
+    opt.textContent = "Неделя "+w+" — "+WEEK_TITLES[w];
+    els.weekSelect.appendChild(opt);
+  });
 
   showView("start");
 })();
