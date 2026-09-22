@@ -629,7 +629,7 @@
     var t = T();
     els.progressText.textContent = t.questionOf(state.current+1, total);
     els.progressFill.style.width = Math.round((state.current/total)*100)+"%";
-    els.topicBadge.textContent = t.week+" "+q.week+" — "+q.topic;
+    els.topicBadge.textContent = t.week+" "+q.week+" — "+WEEK_TOPICS[q.week][currentLang];
     els.questionText.textContent = q.question;
     els.optionsWrap.innerHTML = "";
     var answered = state.answers[state.current];
@@ -676,7 +676,7 @@
   function computeResults(){
     var byWeek = {};
     state.questions.forEach(function(q, i){
-      if(!byWeek[q.week]) byWeek[q.week] = {week:q.week, topic:q.topic, correct:0, total:0};
+      if(!byWeek[q.week]) byWeek[q.week] = {week:q.week, correct:0, total:0};
       byWeek[q.week].total++;
       if(state.answers[i]===q.correct_index) byWeek[q.week].correct++;
     });
@@ -686,7 +686,7 @@
     var grade = gradeFor(overallPercent);
     var weekRows = Object.keys(byWeek).map(function(w){
       var v = byWeek[w];
-      return {week:v.week, topic:v.topic, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
+      return {week:v.week, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
     }).sort(function(a,b){ return a.percent-b.percent || a.week-b.week; });
     state.results = {byWeek:weekRows, overallPercent:overallPercent, grade:grade, totalCorrect:totalCorrect, totalQ:totalQ};
   }
@@ -736,7 +736,7 @@
       var head = document.createElement("div");
       head.className = "topic-row-head";
       var headLeft = document.createElement("span");
-      headLeft.textContent = t.week+" "+w.week+" — "+w.topic;
+      headLeft.textContent = t.week+" "+w.week+" — "+WEEK_TOPICS[w.week][currentLang];
       var headRight = document.createElement("span");
       headRight.textContent = w.correct+"/"+w.total+" ("+w.percent+"%)";
       head.appendChild(headLeft);
@@ -765,7 +765,7 @@
         item.className = "rec-item";
         var topicDiv = document.createElement("div");
         topicDiv.className = "rec-topic";
-        topicDiv.textContent = t.week+" "+w.week+" — "+w.topic+" ("+w.percent+"%)";
+        topicDiv.textContent = t.week+" "+w.week+" — "+WEEK_TOPICS[w.week][currentLang]+" ("+w.percent+"%)";
         var labDiv = document.createElement("div");
         labDiv.className = "rec-lab";
         labDiv.appendChild(makeLabLink(w.week, ""));
