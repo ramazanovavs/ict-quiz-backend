@@ -77,32 +77,48 @@ function distributeCounts(n, total) {
   return counts;
 }
 
+function splitDifficulty(n) {
+  // 40% лёгких / 40% средних / 20% сложных на n вопросов одной недели.
+  // Округление: easy и hard — обычное округление, medium добирает остаток,
+  // так итог всегда точно равен n даже при небольших n (2-5 вопросов).
+  const easy = Math.round(n * 0.4);
+  const hard = Math.round(n * 0.2);
+  const medium = Math.max(0, n - easy - hard);
+  return { easy, medium, hard };
+}
+
 function buildPrompt(weeksWithCounts, lang) {
   const total = weeksWithCounts.reduce((s, w) => s + w.count, 0);
   const langName = LANG_NAMES[lang] || LANG_NAMES.ru;
   const weeksBlock = weeksWithCounts
-    .map((w) => `Неделя ${w.week} — «${w.topic[lang] || w.topic.ru}» (сгенерировать ровно ${w.count} вопрос(а/ов) для этой недели)\nМатериал из силлабуса (источник на русском языке): ${w.material}`)
+    .map((w) => `Неделя ${w.week} — «${w.topic[lang] || w.topic.ru}» (сгенерировать ровно ${w.count} вопрос(а/ов): ${w.difficulty.easy} лёгких, ${w.difficulty.medium} средних, ${w.difficulty.hard} сложных)\nМатериал из силлабуса (источник на русском языке): ${w.material}`)
     .join('\n\n');
   const langRule = lang === 'ru'
     ? '1. Вопросы, варианты ответов и объяснения — на русском языке.'
     : `1. Материал из силлабуса ниже приведён на русском языке только как справочный источник смысла — сами вопросы, варианты ответов ("options") и объяснения ("explanation") должны быть написаны ЦЕЛИКОМ на ${langName} языке. Поле "topic" тоже верни на ${langName} языке — так, как оно дано в заголовке недели ниже.`;
   return `Ты — генератор тестовых вопросов по дисциплине «Информационно-коммуникационные технологии» (ИКТ), составленный по силлабусу курса (учебные недели, Западно-Казахстанский университет им. М. Утемисова).
 
-Ниже перечислены недели курса, для каждой указано ровно сколько вопросов нужно сгенерировать. Всего по всем неделям вместе — ровно ${total} вопросов с одним правильным ответом из четырёх вариантов:
+Ниже перечислены недели курса, для каждой указано ровно сколько вопросов нужно сгенерировать и с каким распределением по сложности. Всего по всем неделям вместе — ровно ${total} вопросов с одним правильным ответом из четырёх вариантов:
 
 ${weeksBlock}
 
+Уровни сложности (используй как ориентир при составлении каждого вопроса):
+- "easy" (лёгкий) — прямое воспроизведение факта, термина или определения из материала.
+- "medium" (средний) — применение понятия к конкретной ситуации или рассуждение в один шаг.
+- "hard" (сложный) — многошаговое рассуждение, сравнение нескольких понятий между собой или разбор пограничного случая/исключения.
+
 Правила:
 ${langRule}
-2. Указанный материал из силлабуса — отправная точка, а не жёсткая граница: можно расширять его смежными понятиями по теме недели и делать вопросы сложнее базового уровня, но не уходи в тему другой недели.
+2. Указанный материал из силлабуса — отправная точка, а не жёсткая граница: можно расширять его смежными понятиями по теме недели, но не уходи в тему другой недели.
 3. Если у недели указана «Подтема» — обязательно распредели вопросы этой недели между заглавной темой и подтемой (не задавай все вопросы недели только по заглавной теме, игнорируя подтему).
 4. У каждого вопроса ровно 4 варианта в поле "options" и ровно один правильный.
 5. "correct_index" — индекс правильного варианта (0-3), точно соответствующий содержимому options.
 6. "week" — номер недели (целое число), к которой относится вопрос, точно как указано выше.
-7. Прежде чем вернуть ответ, проверь для каждого вопроса, что среди 4 вариантов есть ровно один верный и он указан в correct_index, и что число вопросов по каждой неделе точно совпадает с указанным.
+7. "difficulty" — строго одно из трёх значений: "easy", "medium" или "hard" (латиницей, независимо от языка вопроса) — ровно по числу, указанному для этой недели.
+8. Прежде чем вернуть ответ, проверь для каждого вопроса, что среди 4 вариантов есть ровно один верный и он указан в correct_index, и что число вопросов по каждой неделе и по каждому уровню сложности точно совпадает с указанным.
 
 Верни ТОЛЬКО JSON-массив (без markdown, без пояснений вне JSON) из объектов строго такого вида:
-{"week": 1, "topic": "название темы недели", "question": "текст вопроса", "options": ["вариант1","вариант2","вариант3","вариант4"], "correct_index": 0, "explanation": "краткое объяснение правильного ответа в 1-2 предложениях"}`;
+{"week": 1, "topic": "название темы недели", "difficulty": "easy", "question": "текст вопроса", "options": ["вариант1","вариант2","вариант3","вариант4"], "correct_index": 0, "explanation": "краткое объяснение правильного ответа в 1-2 предложениях"}`;
 }
 
 // Сервер сам перепроверяет форму ответа модели и подставляет канонический топик
@@ -111,6 +127,7 @@ ${langRule}
 function validateQuestions(data, weeks, lang) {
   if (!Array.isArray(data)) return [];
   const byWeek = new Map(weeks.map((w) => [w.week, w.topic[lang] || w.topic.ru]));
+  const ALLOWED_DIFFICULTY = ['easy', 'medium', 'hard'];
   return data
     .filter(
       (q) =>
@@ -125,11 +142,13 @@ function validateQuestions(data, weeks, lang) {
         q.correct_index <= 3 &&
         Number.isInteger(q.week) &&
         byWeek.has(q.week) &&
+        ALLOWED_DIFFICULTY.includes(q.difficulty) &&
         typeof q.explanation === 'string'
     )
     .map((q) => ({
       week: q.week,
       topic: byWeek.get(q.week), // канонический топик из WEEK_TOPICS на нужном языке, не от модели
+      difficulty: q.difficulty,
       question: q.question,
       options: q.options,
       correct_index: q.correct_index,
@@ -164,7 +183,7 @@ app.post('/api/generate-questions', async (req, res) => {
     const totalQuestions = Number(req.body && req.body.totalQuestions)
       || requestedWeeks.length * (Number(req.body && req.body.perWeek) || 2);
     const counts = distributeCounts(requestedWeeks.length, totalQuestions);
-    const weeksWithCounts = requestedWeeks.map((w, i) => Object.assign({}, w, { count: counts[i] }));
+    const weeksWithCounts = requestedWeeks.map((w, i) => Object.assign({}, w, { count: counts[i], difficulty: splitDifficulty(counts[i]) }));
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
