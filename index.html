@@ -126,6 +126,13 @@
     display:inline-block;font-size:11.5px;font-weight:700;color:var(--accent-dark);
     background:var(--accent-soft);padding:4px 10px;border-radius:20px;margin-bottom:12px;
   }
+  .difficulty-badge{
+    display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;
+    margin-bottom:12px;margin-left:6px;
+  }
+  .difficulty-easy{background:var(--success-soft);color:var(--success);}
+  .difficulty-medium{background:var(--warning-soft);color:var(--warning);}
+  .difficulty-hard{background:var(--danger-soft);color:var(--danger);}
   .question-text{font-size:16.5px;font-weight:600;margin-bottom:18px;}
   .option-btn{
     display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
@@ -245,7 +252,7 @@
       <span id="progress-text"></span>
     </div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-    <div class="topic-badge" id="topic-badge"></div>
+    <div class="topic-badge" id="topic-badge"></div><div class="difficulty-badge hidden" id="difficulty-badge"></div>
     <div class="question-text" id="question-text"></div>
     <div id="options-wrap"></div>
     <div class="explanation hidden" id="explanation-box"></div>
@@ -346,7 +353,8 @@
       correctOf: function(a,b){ return "Правильных ответов: "+a+" из "+b; },
       allGood: "Все недели освоены на хорошем уровне — можно переходить к практическим проектным работам.",
       letters: ["А","Б","В","Г"],
-      gradeDesc: { high:"Очень хорошо", good:"Хорошо", mid:"Удовлетворительно", low:"Неудовлетворительно" }
+      gradeDesc: { high:"Очень хорошо", good:"Хорошо", mid:"Удовлетворительно", low:"Неудовлетворительно" },
+      difficulty: { easy:"Лёгкий", medium:"Средний", hard:"Сложный" }
     },
     kk: {
       pageTitle: "АКТ біліктілік деңгейін тексеру тесті",
@@ -382,7 +390,8 @@
       correctOf: function(a,b){ return "Дұрыс жауаптар: "+a+" / "+b; },
       allGood: "Барлық апталар жақсы деңгейде меңгерілген — практикалық жобалық жұмыстарға көшуге болады.",
       letters: ["А","Ә","Б","В"],
-      gradeDesc: { high:"Өте жақсы", good:"Жақсы", mid:"Қанағаттанарлық", low:"Қанағаттанарлықсыз" }
+      gradeDesc: { high:"Өте жақсы", good:"Жақсы", mid:"Қанағаттанарлық", low:"Қанағаттанарлықсыз" },
+      difficulty: { easy:"Жеңіл", medium:"Орташа", hard:"Қиын" }
     },
     en: {
       pageTitle: "ICT Proficiency Test",
@@ -418,7 +427,8 @@
       correctOf: function(a,b){ return "Correct answers: "+a+" of "+b; },
       allGood: "All weeks are well covered — time to move on to practical project work.",
       letters: ["A","B","C","D"],
-      gradeDesc: { high:"Very good", good:"Good", mid:"Satisfactory", low:"Unsatisfactory" }
+      gradeDesc: { high:"Very good", good:"Good", mid:"Satisfactory", low:"Unsatisfactory" },
+      difficulty: { easy:"Easy", medium:"Medium", hard:"Hard" }
     }
   };
 
@@ -470,6 +480,7 @@
 
   function validateLLMQuestions(data){
     if(!Array.isArray(data)) return [];
+    var ALLOWED_DIFFICULTY = ["easy","medium","hard"];
     return data.filter(function(q){
       return q && typeof q.question==="string" && q.question.trim() &&
         Array.isArray(q.options) && q.options.length===4 &&
@@ -481,6 +492,7 @@
       return {
         week: q.week,
         topic: (WEEK_TOPICS[q.week] && WEEK_TOPICS[q.week][currentLang]) || q.topic,
+        difficulty: ALLOWED_DIFFICULTY.indexOf(q.difficulty)!==-1 ? q.difficulty : null,
         question: q.question,
         options: q.options,
         correct_index: q.correct_index,
@@ -548,6 +560,7 @@
     progressText: document.getElementById("progress-text"),
     progressFill: document.getElementById("progress-fill"),
     topicBadge: document.getElementById("topic-badge"),
+    difficultyBadge: document.getElementById("difficulty-badge"),
     questionText: document.getElementById("question-text"),
     optionsWrap: document.getElementById("options-wrap"),
     explanationBox: document.getElementById("explanation-box"),
@@ -630,6 +643,12 @@
     els.progressText.textContent = t.questionOf(state.current+1, total);
     els.progressFill.style.width = Math.round((state.current/total)*100)+"%";
     els.topicBadge.textContent = t.week+" "+q.week+" — "+WEEK_TOPICS[q.week][currentLang];
+    if(q.difficulty){
+      els.difficultyBadge.textContent = t.difficulty[q.difficulty];
+      els.difficultyBadge.className = "difficulty-badge difficulty-"+q.difficulty;
+    } else {
+      els.difficultyBadge.className = "difficulty-badge hidden";
+    }
     els.questionText.textContent = q.question;
     els.optionsWrap.innerHTML = "";
     var answered = state.answers[state.current];
