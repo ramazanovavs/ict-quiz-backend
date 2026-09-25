@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Тест уровня владения ИКТ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <style>
   :root{
     --bg:#F5F6F3; --surface:#FFFFFF; --border:#DFE3DE;
@@ -1296,20 +1298,53 @@
     return String(s).replace(/[\/\\:\*\?"<>\|]/g, "_").trim();
   }
 
-  els.pdfBtn.onclick = function(){
+  async function downloadReportPdf(){
     var r = state.results;
     var namePart = sanitizeFilename(state.studentName || "report");
     var when = fileTimestamp((r && r.finishedAt) ? r.finishedAt : new Date());
-    var oldTitle = document.title;
-    document.title = "ICT-report_" + namePart + "_" + when;
-    function restore(){
-      document.title = oldTitle;
-      window.removeEventListener("afterprint", restore);
+    var fileName = "ICT-report_" + namePart + "_" + when + ".pdf";
+
+    if(!window.html2canvas || !window.jspdf){
+      // Библиотеки не загрузились (например, нет сети) — печать браузера как запасной вариант.
+      window.print();
+      return;
     }
-    window.addEventListener("afterprint", restore);
-    window.print();
-    setTimeout(restore, 3000); // резервный возврат, если afterprint почему-то не сработал
-  };
+
+    var el = document.getElementById("results-printable");
+    var originalText = els.pdfBtn.textContent;
+    els.pdfBtn.disabled = true;
+    els.pdfBtn.textContent = "…";
+    try{
+      var canvas = await window.html2canvas(el, { scale:2, backgroundColor:"#ffffff", useCORS:true });
+      var imgData = canvas.toDataURL("image/png");
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var pdf = new jsPDFCtor({ unit:"pt", format:"a4" });
+      var pageWidth = pdf.internal.pageSize.getWidth();
+      var pageHeight = pdf.internal.pageSize.getHeight();
+      var imgWidth = pageWidth;
+      var imgHeight = canvas.height * imgWidth / canvas.width;
+
+      var heightLeft = imgHeight;
+      var position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while(heightLeft > 0){
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(fileName);
+    }catch(e){
+      window.print(); // запасной вариант при любой ошибке генерации
+    }finally{
+      els.pdfBtn.disabled = false;
+      els.pdfBtn.textContent = originalText;
+    }
+  }
+
+  els.pdfBtn.onclick = downloadReportPdf;
   els.statsBtn.onclick = function(){ showView("stats"); fetchStats(); };
   els.statsBackBtn.onclick = function(){ showView("start"); };
   els.statsRetryBtn.onclick = function(){ fetchStats(); };
