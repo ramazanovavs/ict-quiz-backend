@@ -230,11 +230,131 @@ app.post('/api/generate-questions', async (req, res) => {
   }
 });
 
+// Статистика использования: пишем в Supabase (сервер сам ничего не хранит,
+// диск на бесплатном Render не постоянный). Если переменные окружения не
+// заданы — просто не пишем, само прохождение теста при этом не ломается.
+async function logResult(payload) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) {
+    console.warn('Supabase не настроен — статистика не записана');
+    return;
+  }
+  try {
+    const resp = await fetch(`${url}/rest/v1/ict_test_results`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      console.error('Supabase insert failed:', resp.status, await resp.text());
+    }
+  } catch (err) {
+    console.error('Supabase insert error:', err.message);
+  }
+}
+
+app.post('/api/track-result', async (req, res) => {
+  const b = req.body || {};
+  const payload = {
+    student_name: typeof b.studentName === 'string' ? b.studentName.trim().slice(0, 200) || null : null,
+    mode: typeof b.mode === 'string' ? b.mode : 'unknown',
+    week: Number.isInteger(b.week) ? b.week : null,
+    lang: LANGS.includes(b.lang) ? b.lang : 'ru',
+    total_questions: Number.isInteger(b.totalQuestions) ? b.totalQuestions : null,
+    correct_answers: Number.isInteger(b.correctAnswers) ? b.correctAnswers : null,
+    percent: Number.isInteger(b.percent) ? b.percent : null,
+    grade_letter: typeof b.gradeLetter === 'string' ? b.gradeLetter : null,
+    weak_weeks: Array.isArray(b.weakWeeks) ? b.weakWeeks : []
+  };
+  // Не блокируем ответ пользователю ошибкой статистики — если запись не
+  // удалась, тест всё равно считается пройденным.
+  await logResult(payload);
+  res.json({ ok: true });
+});
+
+app.get('/api/stats', async (req, res) => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) {
+    return res.status(503).json({ error: 'not_configured', message: 'Supabase не настроен на сервере' });
+  }
+  try {
+    const resp = await fetch(`${url}/rest/v1/ict_test_results?select=*&order=created_at.desc&limit=2000`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` }
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('Supabase fetch failed:', resp.status, errText);
+      return res.status(502).json({ error: 'upstream_error', message: `Supabase вернул ${resp.status}` });
+    }
+    const rows = await resp.json();
+
+    const total = rows.length;
+    const avgPercent = total ? Math.round(rows.reduce((s, r) => s + (r.percent || 0), 0) / total) : 0;
+
+    const byMode = {};
+    const byLang = {};
+    const byGrade = {};
+    const weekCounts = {};
+
+    rows.forEach((r) => {
+      const mode = r.mode || 'unknown';
+      if (!byMode[mode]) byMode[mode] = { count: 0, sumPercent: 0 };
+      byMode[mode].count += 1;
+      byMode[mode].sumPercent += r.percent || 0;
+
+      const lang = r.lang || 'ru';
+      byLang[lang] = (byLang[lang] || 0) + 1;
+
+      const grade = r.grade_letter || 'unknown';
+      byGrade[grade] = (byGrade[grade] || 0) + 1;
+
+      const weak = Array.isArray(r.weak_weeks) ? r.weak_weeks : [];
+      weak.forEach((w) => {
+        if (w && Number.isInteger(w.week)) {
+          weekCounts[w.week] = (weekCounts[w.week] || 0) + 1;
+        }
+      });
+    });
+
+    const byModeArr = Object.keys(byMode).map((m) => ({
+      mode: m,
+      count: byMode[m].count,
+      avgPercent: Math.round(byMode[m].sumPercent / byMode[m].count)
+    }));
+
+    const weakWeeksRanked = Object.keys(weekCounts)
+      .map((w) => ({ week: Number(w), count: weekCounts[w] }))
+      .sort((a, b) => b.count - a.count || a.week - b.week);
+
+    const recent = rows.slice(0, 20).map((r) => ({
+      createdAt: r.created_at,
+      studentName: r.student_name,
+      mode: r.mode,
+      week: r.week,
+      lang: r.lang,
+      percent: r.percent,
+      gradeLetter: r.grade_letter
+    }));
+
+    res.json({ total, avgPercent, byMode: byModeArr, byLang, byGrade, weakWeeksRanked, recent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'server_error', message: err.message });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({
     ok: true,
     service: 'ict-quiz-backend',
-    endpoints: ['GET /health', 'POST /api/generate-questions']
+    endpoints: ['GET /health', 'POST /api/generate-questions', 'POST /api/track-result', 'GET /api/stats']
   });
 });
 
