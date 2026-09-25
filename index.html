@@ -1288,7 +1288,28 @@
     startTest({ weeks: [w], totalQuestions: 20 });
   };
   els.restartBtn.onclick = function(){ showView("start"); };
-  els.pdfBtn.onclick = function(){ window.print(); };
+  function pad2(n){ return (n<10?"0":"")+n; }
+  function fileTimestamp(d){
+    return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"_"+pad2(d.getHours())+"-"+pad2(d.getMinutes());
+  }
+  function sanitizeFilename(s){
+    return String(s).replace(/[\/\\:\*\?"<>\|]/g, "_").trim();
+  }
+
+  els.pdfBtn.onclick = function(){
+    var r = state.results;
+    var namePart = sanitizeFilename(state.studentName || "report");
+    var when = fileTimestamp((r && r.finishedAt) ? r.finishedAt : new Date());
+    var oldTitle = document.title;
+    document.title = "ICT-report_" + namePart + "_" + when;
+    function restore(){
+      document.title = oldTitle;
+      window.removeEventListener("afterprint", restore);
+    }
+    window.addEventListener("afterprint", restore);
+    window.print();
+    setTimeout(restore, 3000); // резервный возврат, если afterprint почему-то не сработал
+  };
   els.statsBtn.onclick = function(){ showView("stats"); fetchStats(); };
   els.statsBackBtn.onclick = function(){ showView("start"); };
   els.statsRetryBtn.onclick = function(){ fetchStats(); };
