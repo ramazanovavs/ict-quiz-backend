@@ -62,6 +62,11 @@
 
   header.top{margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
   header.top h1{font-size:20px;margin:0;}
+  .header-controls{display:flex;gap:10px;align-items:center;flex:0 0 auto;flex-wrap:wrap;}
+  .stats-toggle{
+    border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
+    border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
   .lang-switch{display:flex;gap:4px;flex:0 0 auto;}
   .lang-switch button{
     border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
@@ -182,10 +187,67 @@
   .rec-lab a.sidebar-pending{color:var(--ink-soft);font-weight:400;text-decoration:none;}
   .rec-lab a.sidebar-pending:hover{color:var(--ink);text-decoration:underline;}
   .rec-empty{font-size:13.5px;color:var(--ink-soft);}
+
+  .review-item{border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;}
+  .review-topic{font-size:11px;font-weight:700;color:var(--accent-dark);margin-bottom:6px;}
+  .review-question{font-size:13.5px;font-weight:600;margin-bottom:8px;}
+  .review-answer-row{font-size:13px;margin-bottom:3px;}
+  .review-answer-row b{font-weight:700;}
+  .review-answer-row.wrong{color:var(--danger);}
+  .review-answer-row.correct{color:var(--success);}
+  .review-explanation{font-size:13px;color:var(--ink-soft);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+  .review-empty{font-size:13.5px;color:var(--ink-soft);}
+
+  .result-meta{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;}
+
+  .results-actions{display:flex;gap:10px;margin-top:22px;}
   .restart-btn{
-    margin-top:22px;width:100%;border:1px solid var(--border);background:var(--surface);
+    flex:1;border:1px solid var(--border);background:var(--surface);
     color:var(--ink);border-radius:7px;padding:11px;font-size:14px;cursor:pointer;font-family:inherit;
   }
+  .pdf-btn{
+    flex:1;border:1px solid var(--accent);background:var(--surface);
+    color:var(--accent-dark);border-radius:7px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+
+  .name-field{margin-bottom:18px;}
+  .name-field label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .name-field input{
+    width:100%;border:1px solid var(--border);border-radius:6px;padding:10px 12px;
+    font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink);
+  }
+  .name-field input.invalid{border-color:var(--danger);}
+
+  @media print{
+    :root{
+      --bg:#F5F6F3 !important; --surface:#FFFFFF !important; --ink:#16262A !important; --ink-soft:#55625D !important;
+      --border:#DFE3DE !important; --accent:#2F6F63 !important; --accent-dark:#1D4A41 !important; --accent-soft:#E3EFEC !important;
+      --success:#2F8F5B !important; --success-soft:#E4F5EC !important; --danger:#B23A2E !important; --danger-soft:#FBEAE7 !important;
+      --warning:#C79A3D !important; --warning-soft:#FBF1DE !important;
+    }
+    body{background:#fff !important;}
+    body *{visibility:hidden;}
+    #results-printable, #results-printable *{visibility:visible;}
+    #results-printable{position:absolute;left:0;top:0;width:100%;padding:16px;}
+    .review-item, .rec-item, .topic-row{break-inside:avoid;}
+  }
+
+  .stats-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .stats-back-btn{
+    border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
+    border-radius:6px;padding:7px 14px;font-size:12.5px;cursor:pointer;font-family:inherit;
+  }
+  .stats-summary{display:flex;gap:16px;margin-bottom:8px;}
+  .stats-summary-item{
+    flex:1;border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;
+  }
+  .stats-summary-num{font-size:30px;font-weight:700;color:var(--accent-dark);}
+  .stats-summary-label{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .stats-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;gap:10px;}
+  .stats-row:last-child{border-bottom:none;}
+  .stats-row-name{flex:1;color:var(--ink);}
+  .stats-row-val{color:var(--ink-soft);white-space:nowrap;}
+  .stats-empty{font-size:13px;color:var(--ink-soft);padding:8px 0;}
 </style>
 </head>
 <body>
@@ -201,15 +263,23 @@
 
   <header class="top">
     <h1 id="page-title">Тест уровня владения ИКТ</h1>
-    <div class="lang-switch" id="lang-switch">
-      <button data-lang="kk">ҚАЗ</button>
-      <button data-lang="ru">РУС</button>
-      <button data-lang="en">ENG</button>
+    <div class="header-controls">
+      <button class="stats-toggle" id="btn-stats"></button>
+      <div class="lang-switch" id="lang-switch">
+        <button data-lang="kk">ҚАЗ</button>
+        <button data-lang="ru">РУС</button>
+        <button data-lang="en">ENG</button>
+      </div>
     </div>
   </header>
 
   <section id="view-start" class="card">
     <p class="start-lead" id="start-lead"></p>
+
+    <div class="name-field">
+      <label for="student-name" id="student-name-label"></label>
+      <input type="text" id="student-name" autocomplete="name">
+    </div>
 
     <button class="mode-btn primary" id="btn-full">
       <b id="full-title"></b>
@@ -260,19 +330,69 @@
   </section>
 
   <section id="view-results" class="card hidden">
-    <div class="score-head">
-      <div class="score-num" id="result-score">0%</div>
-      <div class="level-badge" id="result-level"></div>
-      <div class="score-sub" id="result-sub"></div>
+    <div id="results-printable">
+      <div class="result-meta" id="result-meta"></div>
+      <div class="score-head">
+        <div class="score-num" id="result-score">0%</div>
+        <div class="level-badge" id="result-level"></div>
+        <div class="score-sub" id="result-sub"></div>
+      </div>
+
+      <div class="section-label" id="result-by-week-label"></div>
+      <div id="topic-list"></div>
+
+      <div class="section-label" id="rec-title-label"></div>
+      <div id="rec-wrap"></div>
+
+      <div class="section-label" id="review-title-label"></div>
+      <div id="review-wrap"></div>
     </div>
 
-    <div class="section-label" id="result-by-week-label"></div>
-    <div id="topic-list"></div>
+    <div class="results-actions">
+      <button class="restart-btn" id="restart-btn"></button>
+      <button class="pdf-btn" id="btn-pdf"></button>
+    </div>
+  </section>
 
-    <div class="section-label" id="rec-title-label"></div>
-    <div id="rec-wrap"></div>
+  <section id="view-stats" class="card hidden">
+    <div class="stats-head">
+      <div class="section-label" id="stats-title-label" style="margin-top:0;"></div>
+      <button class="stats-back-btn" id="btn-stats-back"></button>
+    </div>
 
-    <button class="restart-btn" id="restart-btn"></button>
+    <div id="stats-loading" class="loading-box">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="stats-error" class="hidden">
+      <div class="error-box" id="stats-error-text"></div>
+      <button class="stop-btn" id="btn-stats-retry"></button>
+    </div>
+
+    <div id="stats-body" class="hidden">
+      <div class="stats-summary">
+        <div class="stats-summary-item">
+          <div class="stats-summary-num" id="stats-total">0</div>
+          <div class="stats-summary-label" id="stats-total-label"></div>
+        </div>
+        <div class="stats-summary-item">
+          <div class="stats-summary-num" id="stats-avg">0%</div>
+          <div class="stats-summary-label" id="stats-avg-label"></div>
+        </div>
+      </div>
+
+      <div class="section-label" id="stats-by-mode-label"></div>
+      <div id="stats-by-mode"></div>
+
+      <div class="section-label" id="stats-by-grade-label"></div>
+      <div id="stats-by-grade"></div>
+
+      <div class="section-label" id="stats-weak-weeks-label"></div>
+      <div id="stats-weak-weeks"></div>
+
+      <div class="section-label" id="stats-recent-label"></div>
+      <div id="stats-recent"></div>
+    </div>
   </section>
 
   </div>
@@ -284,6 +404,8 @@
 
   // Адрес сервера задан один раз здесь — менять нужно только эту строку.
   var ENDPOINT = "https://ict-quiz-backend.onrender.com/api/generate-questions";
+  var TRACK_ENDPOINT = ENDPOINT.replace(/\/api\/generate-questions$/, "/api/track-result");
+  var STATS_ENDPOINT = ENDPOINT.replace(/\/api\/generate-questions$/, "/api/stats");
   var LANG_KEY = "ict_test_lang";
 
   // 15 недель курса — названия тем в трёх языках, соответствуют WEEK_TOPICS в
@@ -354,7 +476,30 @@
       allGood: "Все недели освоены на хорошем уровне — можно переходить к практическим проектным работам.",
       letters: ["А","Б","В","Г"],
       gradeDesc: { high:"Очень хорошо", good:"Хорошо", mid:"Удовлетворительно", low:"Неудовлетворительно" },
-      difficulty: { easy:"Лёгкий", medium:"Средний", hard:"Сложный" }
+      difficulty: { easy:"Лёгкий", medium:"Средний", hard:"Сложный" },
+      statsBtn: "📊 Статистика",
+      statsTitle: "Статистика использования",
+      statsBack: "Назад",
+      statsErr: "Не удалось загрузить статистику.",
+      statsRetry: "Повторить",
+      statsTotal: "Всего попыток",
+      statsAvg: "Средний результат",
+      statsByMode: "По режимам",
+      statsByGrade: "По оценкам",
+      statsWeakWeeks: "Чаще всего слабые недели",
+      statsRecent: "Последние попытки",
+      statsNoData: "Пока нет данных.",
+      modeNames: { full:"Весь курс", rk1:"1 рубежный контроль", rk2:"2 рубежный контроль", week:"По одной неделе" },
+      statsAttempts: function(n){ return n+" попыт."; },
+      statsMentions: function(n){ return n+" раз"; },
+      reviewTitle: "Комментарии к неправильным ответам",
+      reviewYourAnswer: "Твой ответ:",
+      reviewCorrectAnswer: "Правильный ответ:",
+      reviewAllCorrect: "Все ответы верные — комментировать нечего.",
+      studentNameLabel: "ФИО",
+      studentNamePlaceholder: "Введите фамилию, имя и отчество",
+      pdfBtn: "Скачать отчёт (PDF)",
+      resultMeta: function(name, when){ return name+" · "+when; }
     },
     kk: {
       pageTitle: "АКТ біліктілік деңгейін тексеру тесті",
@@ -391,7 +536,30 @@
       allGood: "Барлық апталар жақсы деңгейде меңгерілген — практикалық жобалық жұмыстарға көшуге болады.",
       letters: ["А","Ә","Б","В"],
       gradeDesc: { high:"Өте жақсы", good:"Жақсы", mid:"Қанағаттанарлық", low:"Қанағаттанарлықсыз" },
-      difficulty: { easy:"Жеңіл", medium:"Орташа", hard:"Қиын" }
+      difficulty: { easy:"Жеңіл", medium:"Орташа", hard:"Қиын" },
+      statsBtn: "📊 Статистика",
+      statsTitle: "Пайдалану статистикасы",
+      statsBack: "Артқа",
+      statsErr: "Статистиканы жүктеу мүмкін болмады.",
+      statsRetry: "Қайталау",
+      statsTotal: "Барлық әрекеттер",
+      statsAvg: "Орташа нәтиже",
+      statsByMode: "Режимдер бойынша",
+      statsByGrade: "Бағалар бойынша",
+      statsWeakWeeks: "Жиі әлсіз апталар",
+      statsRecent: "Соңғы әрекеттер",
+      statsNoData: "Әзірге деректер жоқ.",
+      modeNames: { full:"Барлық курс", rk1:"1-аралық бақылау", rk2:"2-аралық бақылау", week:"Бір апта бойынша" },
+      statsAttempts: function(n){ return n+" әрекет"; },
+      statsMentions: function(n){ return n+" рет"; },
+      reviewTitle: "Қате жауаптарға түсініктемелер",
+      reviewYourAnswer: "Сенің жауабың:",
+      reviewCorrectAnswer: "Дұрыс жауап:",
+      reviewAllCorrect: "Барлық жауаптар дұрыс — түсіндіретін ештеңе жоқ.",
+      studentNameLabel: "Аты-жөні",
+      studentNamePlaceholder: "Тегін, атын және әкесінің атын енгізіңіз",
+      pdfBtn: "Есепті жүктеу (PDF)",
+      resultMeta: function(name, when){ return name+" · "+when; }
     },
     en: {
       pageTitle: "ICT Proficiency Test",
@@ -428,7 +596,30 @@
       allGood: "All weeks are well covered — time to move on to practical project work.",
       letters: ["A","B","C","D"],
       gradeDesc: { high:"Very good", good:"Good", mid:"Satisfactory", low:"Unsatisfactory" },
-      difficulty: { easy:"Easy", medium:"Medium", hard:"Hard" }
+      difficulty: { easy:"Easy", medium:"Medium", hard:"Hard" },
+      statsBtn: "📊 Statistics",
+      statsTitle: "Usage statistics",
+      statsBack: "Back",
+      statsErr: "Couldn't load statistics.",
+      statsRetry: "Retry",
+      statsTotal: "Total attempts",
+      statsAvg: "Average score",
+      statsByMode: "By mode",
+      statsByGrade: "By grade",
+      statsWeakWeeks: "Most frequently weak weeks",
+      statsRecent: "Recent attempts",
+      statsNoData: "No data yet.",
+      modeNames: { full:"Full course", rk1:"Midterm check 1", rk2:"Midterm check 2", week:"Single week" },
+      statsAttempts: function(n){ return n+" attempt(s)"; },
+      statsMentions: function(n){ return n+"x"; },
+      reviewTitle: "Comments on incorrect answers",
+      reviewYourAnswer: "Your answer:",
+      reviewCorrectAnswer: "Correct answer:",
+      reviewAllCorrect: "All answers were correct — nothing to comment on.",
+      studentNameLabel: "Full name",
+      studentNamePlaceholder: "Enter your full name",
+      pdfBtn: "Download report (PDF)",
+      resultMeta: function(name, when){ return name+" · "+when; }
     }
   };
 
@@ -470,7 +661,7 @@
   }
 
   var abortCtl = null;
-  var state = { modeConfig:null, questions:[], current:0, answers:[], results:null };
+  var state = { modeConfig:null, questions:[], current:0, answers:[], results:null, statsData:null, studentName:"" };
 
   function shuffle(arr){
     var a = arr.slice();
@@ -531,14 +722,18 @@
       start: document.getElementById("view-start"),
       loading: document.getElementById("view-loading"),
       quiz: document.getElementById("view-quiz"),
-      results: document.getElementById("view-results")
+      results: document.getElementById("view-results"),
+      stats: document.getElementById("view-stats")
     },
     langSwitch: document.getElementById("lang-switch"),
+    statsBtn: document.getElementById("btn-stats"),
     pageTitle: document.getElementById("page-title"),
     sidebarTitle: document.getElementById("sidebar-title"),
     sidebarHint: document.getElementById("sidebar-hint"),
     sidebarList: document.getElementById("sidebar-list"),
     startLead: document.getElementById("start-lead"),
+    studentNameLabel: document.getElementById("student-name-label"),
+    studentNameInput: document.getElementById("student-name"),
     fullBtn: document.getElementById("btn-full"),
     fullTitle: document.getElementById("full-title"),
     fullDesc: document.getElementById("full-desc"),
@@ -572,7 +767,30 @@
     topicList: document.getElementById("topic-list"),
     recTitleLabel: document.getElementById("rec-title-label"),
     recWrap: document.getElementById("rec-wrap"),
-    restartBtn: document.getElementById("restart-btn")
+    reviewTitleLabel: document.getElementById("review-title-label"),
+    reviewWrap: document.getElementById("review-wrap"),
+    restartBtn: document.getElementById("restart-btn"),
+    pdfBtn: document.getElementById("btn-pdf"),
+    resultMeta: document.getElementById("result-meta"),
+    statsTitleLabel: document.getElementById("stats-title-label"),
+    statsBackBtn: document.getElementById("btn-stats-back"),
+    statsLoading: document.getElementById("stats-loading"),
+    statsErrorBox: document.getElementById("stats-error"),
+    statsErrorText: document.getElementById("stats-error-text"),
+    statsRetryBtn: document.getElementById("btn-stats-retry"),
+    statsBody: document.getElementById("stats-body"),
+    statsTotal: document.getElementById("stats-total"),
+    statsTotalLabel: document.getElementById("stats-total-label"),
+    statsAvg: document.getElementById("stats-avg"),
+    statsAvgLabel: document.getElementById("stats-avg-label"),
+    statsByModeLabel: document.getElementById("stats-by-mode-label"),
+    statsByMode: document.getElementById("stats-by-mode"),
+    statsByGradeLabel: document.getElementById("stats-by-grade-label"),
+    statsByGrade: document.getElementById("stats-by-grade"),
+    statsWeakWeeksLabel: document.getElementById("stats-weak-weeks-label"),
+    statsWeakWeeks: document.getElementById("stats-weak-weeks"),
+    statsRecentLabel: document.getElementById("stats-recent-label"),
+    statsRecent: document.getElementById("stats-recent")
   };
 
   function showView(name){
@@ -707,7 +925,7 @@
       var v = byWeek[w];
       return {week:v.week, correct:v.correct, total:v.total, percent:Math.round((v.correct/v.total)*100)};
     }).sort(function(a,b){ return a.percent-b.percent || a.week-b.week; });
-    state.results = {byWeek:weekRows, overallPercent:overallPercent, grade:grade, totalCorrect:totalCorrect, totalQ:totalQ};
+    state.results = {byWeek:weekRows, overallPercent:overallPercent, grade:grade, totalCorrect:totalCorrect, totalQ:totalQ, finishedAt:new Date()};
   }
 
   function barClass(p){ return p<40 ? "bar-low" : (p<70 ? "bar-mid" : "bar-good"); }
@@ -716,6 +934,34 @@
     computeResults();
     showView("results");
     renderResults();
+    trackResult();
+  }
+
+  // Отправляет сводку по завершённому тесту на сервер для статистики.
+  // Не блокирует и не влияет на интерфейс — ошибка отправки просто
+  // игнорируется, результат теста пользователю уже показан.
+  function trackResult(){
+    var r = state.results;
+    var cfg = state.modeConfig;
+    var modeKey = cfg===TEST_MODES.full ? "full" : cfg===TEST_MODES.rk1 ? "rk1" : cfg===TEST_MODES.rk2 ? "rk2" : "week";
+    var payload = {
+      studentName: state.studentName,
+      mode: modeKey,
+      week: (modeKey==="week" && cfg.weeks && cfg.weeks.length===1) ? cfg.weeks[0] : null,
+      lang: currentLang,
+      totalQuestions: r.totalQ,
+      correctAnswers: r.totalCorrect,
+      percent: r.overallPercent,
+      gradeLetter: r.grade.letter,
+      weakWeeks: r.byWeek.filter(function(w){ return w.percent<70; }).map(function(w){ return {week:w.week, percent:w.percent}; })
+    };
+    try{
+      fetch(TRACK_ENDPOINT, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+      }).catch(function(){});
+    }catch(e){}
   }
 
   // Ссылка на лабораторную неделю — если url ещё не задан, всё равно рисуем
@@ -743,6 +989,9 @@
   function renderResults(){
     var r = state.results;
     var t = T();
+    var when = "";
+    try{ when = r.finishedAt.toLocaleString(); }catch(e){}
+    els.resultMeta.textContent = t.resultMeta(state.studentName || "—", when);
     els.resultScore.textContent = r.overallPercent+"%";
     els.resultLevel.textContent = r.grade.letter+" · "+r.grade.gpa.toFixed(2)+" · "+t.gradeDesc[r.grade.key];
     els.resultLevel.className = "level-badge level-"+r.grade.key;
@@ -793,6 +1042,141 @@
         els.recWrap.appendChild(item);
       });
     }
+
+    els.reviewWrap.innerHTML = "";
+    var wrongIdx = [];
+    state.questions.forEach(function(q, i){
+      if(state.answers[i] !== q.correct_index) wrongIdx.push(i);
+    });
+    if(wrongIdx.length===0){
+      var pr = document.createElement("p");
+      pr.className = "review-empty";
+      pr.textContent = t.reviewAllCorrect;
+      els.reviewWrap.appendChild(pr);
+    } else {
+      wrongIdx.forEach(function(i){
+        var q = state.questions[i];
+        var chosen = state.answers[i];
+        var item = document.createElement("div");
+        item.className = "review-item";
+
+        var topicDiv = document.createElement("div");
+        topicDiv.className = "review-topic";
+        topicDiv.textContent = t.week+" "+q.week+" — "+WEEK_TOPICS[q.week][currentLang];
+        item.appendChild(topicDiv);
+
+        var qDiv = document.createElement("div");
+        qDiv.className = "review-question";
+        qDiv.textContent = q.question;
+        item.appendChild(qDiv);
+
+        var yourRow = document.createElement("div");
+        yourRow.className = "review-answer-row wrong";
+        var yourLetter = (chosen!=null) ? t.letters[chosen] : "—";
+        var yourText = (chosen!=null) ? q.options[chosen] : "";
+        yourRow.innerHTML = "<b>"+t.reviewYourAnswer+"</b> ";
+        yourRow.appendChild(document.createTextNode(yourLetter+") "+yourText));
+        item.appendChild(yourRow);
+
+        var correctRow = document.createElement("div");
+        correctRow.className = "review-answer-row correct";
+        correctRow.innerHTML = "<b>"+t.reviewCorrectAnswer+"</b> ";
+        correctRow.appendChild(document.createTextNode(t.letters[q.correct_index]+") "+q.options[q.correct_index]));
+        item.appendChild(correctRow);
+
+        var explDiv = document.createElement("div");
+        explDiv.className = "review-explanation";
+        explDiv.textContent = q.explanation;
+        item.appendChild(explDiv);
+
+        els.reviewWrap.appendChild(item);
+      });
+    }
+  }
+
+  function statsRow(name, val){
+    var row = document.createElement("div");
+    row.className = "stats-row";
+    var nameSpan = document.createElement("span");
+    nameSpan.className = "stats-row-name";
+    nameSpan.textContent = name;
+    var valSpan = document.createElement("span");
+    valSpan.className = "stats-row-val";
+    valSpan.textContent = val;
+    row.appendChild(nameSpan);
+    row.appendChild(valSpan);
+    return row;
+  }
+
+  function statsEmpty(container){
+    var p = document.createElement("p");
+    p.className = "stats-empty";
+    p.textContent = T().statsNoData;
+    container.appendChild(p);
+  }
+
+  function renderStats(data){
+    var t = T();
+    state.statsData = data;
+    els.statsTotal.textContent = data.total;
+    els.statsAvg.textContent = data.avgPercent+"%";
+
+    els.statsByMode.innerHTML = "";
+    if(!data.byMode.length){ statsEmpty(els.statsByMode); }
+    data.byMode.slice().sort(function(a,b){ return b.count-a.count; }).forEach(function(m){
+      var name = t.modeNames[m.mode] || m.mode;
+      els.statsByMode.appendChild(statsRow(name, t.statsAttempts(m.count)+" · "+m.avgPercent+"%"));
+    });
+
+    els.statsByGrade.innerHTML = "";
+    var gradeOrder = ["A","A-","B+","B","B-","C+","C","C-","D+","D","FX","F"];
+    var anyGrade = false;
+    gradeOrder.forEach(function(g){
+      if(data.byGrade[g]){
+        anyGrade = true;
+        els.statsByGrade.appendChild(statsRow(g, t.statsAttempts(data.byGrade[g])));
+      }
+    });
+    if(!anyGrade){ statsEmpty(els.statsByGrade); }
+
+    els.statsWeakWeeks.innerHTML = "";
+    if(!data.weakWeeksRanked.length){ statsEmpty(els.statsWeakWeeks); }
+    data.weakWeeksRanked.slice(0,8).forEach(function(w){
+      var name = t.week+" "+w.week+" — "+(WEEK_TOPICS[w.week] ? WEEK_TOPICS[w.week][currentLang] : "");
+      els.statsWeakWeeks.appendChild(statsRow(name, t.statsMentions(w.count)));
+    });
+
+    els.statsRecent.innerHTML = "";
+    if(!data.recent.length){ statsEmpty(els.statsRecent); }
+    data.recent.forEach(function(r){
+      var modeName = t.modeNames[r.mode] || r.mode;
+      var when = "";
+      try{ when = new Date(r.createdAt).toLocaleString(); }catch(e){}
+      var label = (r.studentName || "—") + " — " + modeName + (r.week ? " ("+t.week+" "+r.week+")" : "") + " — " + when;
+      els.statsRecent.appendChild(statsRow(label, (r.percent!=null ? r.percent+"%" : "—")+" "+(r.gradeLetter||"")));
+    });
+  }
+
+  async function fetchStats(){
+    els.statsLoading.classList.remove("hidden");
+    els.statsErrorBox.classList.add("hidden");
+    els.statsBody.classList.add("hidden");
+    try{
+      var resp = await fetch(STATS_ENDPOINT);
+      if(!resp.ok){
+        var body = null;
+        try{ body = await resp.json(); }catch(e2){}
+        throw new Error((body && body.message) || ("HTTP "+resp.status));
+      }
+      var data = await resp.json();
+      els.statsLoading.classList.add("hidden");
+      els.statsBody.classList.remove("hidden");
+      renderStats(data);
+    }catch(err){
+      els.statsLoading.classList.add("hidden");
+      els.statsErrorBox.classList.remove("hidden");
+      els.statsErrorText.textContent = T().statsErr;
+    }
   }
 
   function renderSidebar(){
@@ -829,6 +1213,8 @@
     els.sidebarTitle.textContent = t.sidebarTitle;
     els.sidebarHint.textContent = t.sidebarHint;
     els.startLead.textContent = t.startLead;
+    els.studentNameLabel.textContent = t.studentNameLabel;
+    els.studentNameInput.placeholder = t.studentNamePlaceholder;
     els.fullTitle.textContent = t.fullTitle;
     els.fullDesc.textContent = t.fullDesc;
     els.rk1Title.textContent = t.rk1Title;
@@ -841,7 +1227,19 @@
     els.stopBtn.textContent = t.stopBtn;
     els.resultByWeekLabel.textContent = t.resultByWeek;
     els.recTitleLabel.textContent = t.recTitle;
+    els.reviewTitleLabel.textContent = t.reviewTitle;
     els.restartBtn.textContent = t.restartBtn;
+    els.pdfBtn.textContent = t.pdfBtn;
+    els.statsBtn.textContent = t.statsBtn;
+    els.statsTitleLabel.textContent = t.statsTitle;
+    els.statsBackBtn.textContent = t.statsBack;
+    els.statsRetryBtn.textContent = t.statsRetry;
+    els.statsTotalLabel.textContent = t.statsTotal;
+    els.statsAvgLabel.textContent = t.statsAvg;
+    els.statsByModeLabel.textContent = t.statsByMode;
+    els.statsByGradeLabel.textContent = t.statsByGrade;
+    els.statsWeakWeeksLabel.textContent = t.statsWeakWeeks;
+    els.statsRecentLabel.textContent = t.statsRecent;
 
     Array.prototype.forEach.call(els.langSwitch.querySelectorAll("button"), function(btn){
       btn.classList.toggle("active", btn.getAttribute("data-lang")===currentLang);
@@ -851,6 +1249,7 @@
     renderWeekSelect();
     if(!els.views.quiz.classList.contains("hidden") && state.questions.length){ renderQuestion(); }
     if(!els.views.results.classList.contains("hidden") && state.results){ renderResults(); }
+    if(!els.views.stats.classList.contains("hidden") && state.statsData){ renderStats(state.statsData); }
     if(!els.views.loading.classList.contains("hidden") && !els.loadingError.classList.contains("hidden")){
       // re-render the currently shown error in the new language
       renderError(state.lastError || {});
@@ -869,14 +1268,30 @@
     if(btn) setLang(btn.getAttribute("data-lang"));
   });
 
-  els.fullBtn.onclick = function(){ startTest(TEST_MODES.full); };
-  els.rk1Btn.onclick = function(){ startTest(TEST_MODES.rk1); };
-  els.rk2Btn.onclick = function(){ startTest(TEST_MODES.rk2); };
+  function requireStudentName(){
+    var v = els.studentNameInput.value.trim();
+    if(!v){
+      els.studentNameInput.classList.add("invalid");
+      els.studentNameInput.focus();
+      return null;
+    }
+    els.studentNameInput.classList.remove("invalid");
+    return v;
+  }
+
+  els.fullBtn.onclick = function(){ var n=requireStudentName(); if(!n) return; state.studentName=n; startTest(TEST_MODES.full); };
+  els.rk1Btn.onclick = function(){ var n=requireStudentName(); if(!n) return; state.studentName=n; startTest(TEST_MODES.rk1); };
+  els.rk2Btn.onclick = function(){ var n=requireStudentName(); if(!n) return; state.studentName=n; startTest(TEST_MODES.rk2); };
   els.weekBtn.onclick = function(){
+    var n=requireStudentName(); if(!n) return; state.studentName=n;
     var w = Number(els.weekSelect.value);
     startTest({ weeks: [w], totalQuestions: 20 });
   };
   els.restartBtn.onclick = function(){ showView("start"); };
+  els.pdfBtn.onclick = function(){ window.print(); };
+  els.statsBtn.onclick = function(){ showView("stats"); fetchStats(); };
+  els.statsBackBtn.onclick = function(){ showView("start"); };
+  els.statsRetryBtn.onclick = function(){ fetchStats(); };
   els.nextBtn.onclick = function(){
     if(state.current < state.questions.length-1){
       state.current++;
