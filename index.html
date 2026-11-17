@@ -234,11 +234,17 @@
     .review-item, .rec-item, .topic-row{break-inside:avoid;}
   }
 
-  .stats-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .stats-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;flex-wrap:wrap;}
+  .stats-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .stats-back-btn{
     border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
     border-radius:6px;padding:7px 14px;font-size:12.5px;cursor:pointer;font-family:inherit;
   }
+  .stats-export-btn{
+    border:1px solid var(--accent);background:var(--surface);color:var(--accent-dark);
+    border-radius:6px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  .stats-export-btn:disabled{opacity:.6;cursor:default;}
   .stats-summary{display:flex;gap:16px;margin-bottom:8px;}
   .stats-summary-item{
     flex:1;border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;
@@ -359,8 +365,12 @@
   <section id="view-stats" class="card hidden">
     <div class="stats-head">
       <div class="section-label" id="stats-title-label" style="margin-top:0;"></div>
-      <button class="stats-back-btn" id="btn-stats-back"></button>
+      <div class="stats-actions">
+        <button class="stats-export-btn" id="btn-stats-export"></button>
+        <button class="stats-back-btn" id="btn-stats-back"></button>
+      </div>
     </div>
+    <div class="error-box hidden" id="export-error"></div>
 
     <div id="stats-loading" class="loading-box">
       <div class="spinner"></div>
@@ -408,6 +418,7 @@
   var ENDPOINT = "https://ict-quiz-backend.onrender.com/api/generate-questions";
   var TRACK_ENDPOINT = ENDPOINT.replace(/\/api\/generate-questions$/, "/api/track-result");
   var STATS_ENDPOINT = ENDPOINT.replace(/\/api\/generate-questions$/, "/api/stats");
+  var EXPORT_ENDPOINT = ENDPOINT.replace(/\/api\/generate-questions$/, "/api/export");
   var LANG_KEY = "ict_test_lang";
 
   // 15 недель курса — названия тем в трёх языках, соответствуют WEEK_TOPICS в
@@ -489,7 +500,9 @@
       statsByMode: "По режимам",
       statsByGrade: "По оценкам",
       statsWeakWeeks: "Чаще всего слабые недели",
-      statsRecent: "Последние попытки",
+      statsRecent: "Последние попытки (до 50)",
+      statsExport: "⬇ Excel (500 последних)",
+      statsExportErr: "Не удалось скачать файл. Попробуйте ещё раз.",
       statsNoData: "Пока нет данных.",
       modeNames: { full:"Весь курс", rk1:"1 рубежный контроль", rk2:"2 рубежный контроль", week:"По одной неделе" },
       statsAttempts: function(n){ return n+" попыт."; },
@@ -549,7 +562,9 @@
       statsByMode: "Режимдер бойынша",
       statsByGrade: "Бағалар бойынша",
       statsWeakWeeks: "Жиі әлсіз апталар",
-      statsRecent: "Соңғы әрекеттер",
+      statsRecent: "Соңғы әрекеттер (50-ге дейін)",
+      statsExport: "⬇ Excel (соңғы 500)",
+      statsExportErr: "Файлды жүктеу мүмкін болмады. Қайтадан көріңіз.",
       statsNoData: "Әзірге деректер жоқ.",
       modeNames: { full:"Барлық курс", rk1:"1-аралық бақылау", rk2:"2-аралық бақылау", week:"Бір апта бойынша" },
       statsAttempts: function(n){ return n+" әрекет"; },
@@ -609,7 +624,9 @@
       statsByMode: "By mode",
       statsByGrade: "By grade",
       statsWeakWeeks: "Most frequently weak weeks",
-      statsRecent: "Recent attempts",
+      statsRecent: "Recent attempts (up to 50)",
+      statsExport: "⬇ Excel (last 500)",
+      statsExportErr: "Couldn't download the file. Please try again.",
       statsNoData: "No data yet.",
       modeNames: { full:"Full course", rk1:"Midterm check 1", rk2:"Midterm check 2", week:"Single week" },
       statsAttempts: function(n){ return n+" attempt(s)"; },
@@ -776,6 +793,8 @@
     resultMeta: document.getElementById("result-meta"),
     statsTitleLabel: document.getElementById("stats-title-label"),
     statsBackBtn: document.getElementById("btn-stats-back"),
+    statsExportBtn: document.getElementById("btn-stats-export"),
+    exportError: document.getElementById("export-error"),
     statsLoading: document.getElementById("stats-loading"),
     statsErrorBox: document.getElementById("stats-error"),
     statsErrorText: document.getElementById("stats-error-text"),
@@ -1160,6 +1179,7 @@
   }
 
   async function fetchStats(){
+    els.exportError.classList.add("hidden");
     els.statsLoading.classList.remove("hidden");
     els.statsErrorBox.classList.add("hidden");
     els.statsBody.classList.add("hidden");
@@ -1235,6 +1255,7 @@
     els.statsBtn.textContent = t.statsBtn;
     els.statsTitleLabel.textContent = t.statsTitle;
     els.statsBackBtn.textContent = t.statsBack;
+    els.statsExportBtn.textContent = t.statsExport;
     els.statsRetryBtn.textContent = t.statsRetry;
     els.statsTotalLabel.textContent = t.statsTotal;
     els.statsAvgLabel.textContent = t.statsAvg;
@@ -1344,7 +1365,39 @@
     }
   }
 
+  // Выгрузка последних 500 тестирований в Excel: файл формирует сервер
+  // (/api/export), страница только скачивает его. В запросе передаются язык
+  // интерфейса (для заголовков) и часовой пояс браузера (для даты и времени).
+  async function downloadExcel(){
+    var btn = els.statsExportBtn;
+    els.exportError.classList.add("hidden");
+    btn.disabled = true;
+    btn.textContent = "…";
+    try{
+      var tz = "UTC";
+      try{ tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }catch(e0){}
+      var resp = await fetch(EXPORT_ENDPOINT+"?lang="+encodeURIComponent(currentLang)+"&tz="+encodeURIComponent(tz));
+      if(!resp.ok){ throw new Error("HTTP "+resp.status); }
+      var blob = await resp.blob();
+      var objUrl = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = objUrl;
+      a.download = "ICT-results_"+fileTimestamp(new Date())+".xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 2000);
+    }catch(e){
+      els.exportError.textContent = T().statsExportErr;
+      els.exportError.classList.remove("hidden");
+    }finally{
+      btn.disabled = false;
+      btn.textContent = T().statsExport;
+    }
+  }
+
   els.pdfBtn.onclick = downloadReportPdf;
+  els.statsExportBtn.onclick = downloadExcel;
   els.statsBtn.onclick = function(){ showView("stats"); fetchStats(); };
   els.statsBackBtn.onclick = function(){ showView("start"); };
   els.statsRetryBtn.onclick = function(){ fetchStats(); };
