@@ -11,6 +11,11 @@ app.use(express.json());
 const LANGS = ['ru', 'kk', 'en'];
 const LANG_NAMES = { ru: 'русском', kk: 'казахском', en: 'английском' };
 
+// Сколько последних тестирований показывает страница статистики и сколько
+// попадает в выгрузку Excel.
+const RECENT_LIMIT = 50;
+const EXPORT_LIMIT = 500;
+
 // 15 недель курса «Информационно-коммуникационные технологии» — из силлабуса
 // ЗКУ им. М. Утемисова (раздел «4 Структура и содержание дисциплины» + СРСП/СРС).
 // material — источник на русском (из самого силлабуса), отправная точка для
@@ -333,7 +338,7 @@ app.get('/api/stats', async (req, res) => {
       .map((w) => ({ week: Number(w), count: weekCounts[w] }))
       .sort((a, b) => b.count - a.count || a.week - b.week);
 
-    const recent = rows.slice(0, 20).map((r) => ({
+    const recent = rows.slice(0, RECENT_LIMIT).map((r) => ({
       createdAt: r.created_at,
       studentName: r.student_name,
       mode: r.mode,
@@ -350,11 +355,132 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// ---------- Выгрузка последних тестирований в Excel ----------
+// Заголовки и названия режимов — на языке интерфейса (параметр lang).
+const EXPORT_I18N = {
+  ru: {
+    sheet: 'Результаты',
+    headers: ['Дата и время', 'ФИО', 'Режим', 'Неделя', 'Язык', 'Вопросов', 'Верных ответов', 'Результат, %', 'Оценка', 'Слабые недели (<70%)'],
+    modes: { full: 'Весь курс', rk1: '1 рубежный контроль', rk2: '2 рубежный контроль', week: 'По одной неделе' }
+  },
+  kk: {
+    sheet: 'Нәтижелер',
+    headers: ['Күні мен уақыты', 'Аты-жөні', 'Режим', 'Апта', 'Тіл', 'Сұрақ саны', 'Дұрыс жауаптар', 'Нәтиже, %', 'Баға', 'Әлсіз апталар (<70%)'],
+    modes: { full: 'Барлық курс', rk1: '1-аралық бақылау', rk2: '2-аралық бақылау', week: 'Бір апта бойынша' }
+  },
+  en: {
+    sheet: 'Results',
+    headers: ['Date and time', 'Full name', 'Mode', 'Week', 'Language', 'Questions', 'Correct answers', 'Score, %', 'Grade', 'Weak weeks (<70%)'],
+    modes: { full: 'Full course', rk1: 'Midterm check 1', rk2: 'Midterm check 2', week: 'Single week' }
+  }
+};
+const LANG_LABELS = { ru: 'РУС', kk: 'ҚАЗ', en: 'ENG' };
+
+// Excel хранит дату без часового пояса. Переводим UTC-время записи в пояс
+// пользователя (страница передаёт его в параметре tz) и записываем «настенное»
+// время в ячейку, чтобы в Excel стояло то же время, что видел студент.
+function toLocalNaive(date, tz) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).formatToParts(date);
+    const g = (type) => Number(parts.find((p) => p.type === type).value);
+    return new Date(Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second')));
+  } catch (e) {
+    return date; // неизвестный пояс — оставляем UTC
+  }
+}
+
+app.get('/api/export', async (req, res) => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) {
+    return res.status(503).json({ error: 'not_configured', message: 'Supabase не настроен на сервере' });
+  }
+  // exceljs подключаем только здесь: если пакет ещё не установлен, остальные
+  // функции сервиса (тест, статистика) продолжают работать.
+  let ExcelJS;
+  try {
+    ExcelJS = require('exceljs');
+  } catch (e) {
+    console.error('exceljs не установлен:', e.message);
+    return res.status(500).json({ error: 'server_misconfigured', message: 'На сервере не установлен пакет exceljs (выполните npm install)' });
+  }
+  try {
+    const lang = LANGS.includes(req.query.lang) ? req.query.lang : 'ru';
+    const tz = typeof req.query.tz === 'string' && req.query.tz ? req.query.tz.slice(0, 64) : 'UTC';
+    const t = EXPORT_I18N[lang];
+
+    const resp = await fetch(`${url}/rest/v1/ict_test_results?select=*&order=created_at.desc&limit=${EXPORT_LIMIT}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` }
+    });
+    if (!resp.ok) {
+      console.error('Supabase export fetch failed:', resp.status, await resp.text());
+      return res.status(502).json({ error: 'upstream_error', message: `Supabase вернул ${resp.status}` });
+    }
+    const rows = await resp.json();
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Makhambet AI ICT Test';
+    wb.created = new Date();
+    const ws = wb.addWorksheet(t.sheet, { views: [{ state: 'frozen', ySplit: 1 }] });
+    const widths = [18, 34, 22, 9, 8, 11, 15, 14, 9, 28];
+    ws.columns = t.headers.map((h, i) => ({ header: h, key: 'c' + i, width: widths[i] }));
+
+    const headRow = ws.getRow(1);
+    headRow.height = 32;
+    headRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FF1D4A41' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E7E2' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    });
+
+    rows.forEach((r) => {
+      const weak = (Array.isArray(r.weak_weeks) ? r.weak_weeks : [])
+        .filter((w) => w && Number.isInteger(w.week))
+        .sort((a, b) => a.week - b.week)
+        .map((w) => (w.percent != null ? `${w.week} (${w.percent}%)` : String(w.week)))
+        .join(', ');
+      const created = r.created_at ? new Date(r.created_at) : null;
+      ws.addRow([
+        created && !isNaN(created) ? toLocalNaive(created, tz) : null,
+        r.student_name || '',
+        t.modes[r.mode] || r.mode || '',
+        r.week != null ? r.week : null,
+        LANG_LABELS[r.lang] || r.lang || '',
+        r.total_questions != null ? r.total_questions : null,
+        r.correct_answers != null ? r.correct_answers : null,
+        r.percent != null ? r.percent : null,
+        r.grade_letter || '',
+        weak
+      ]);
+    });
+
+    ws.getColumn(1).numFmt = 'dd.mm.yyyy hh:mm';
+    [4, 5, 6, 7, 8, 9].forEach((c) => { ws.getColumn(c).alignment = { horizontal: 'center' }; });
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: t.headers.length } };
+
+    const buf = await wb.xlsx.writeBuffer();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="ict-results.xlsx"',
+      'Cache-Control': 'no-store'
+    });
+    res.send(Buffer.from(buf));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'server_error', message: err.message });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({
     ok: true,
     service: 'ict-quiz-backend',
-    endpoints: ['GET /health', 'POST /api/generate-questions', 'POST /api/track-result', 'GET /api/stats']
+    endpoints: ['GET /health', 'POST /api/generate-questions', 'POST /api/track-result', 'GET /api/stats', 'GET /api/export']
   });
 });
 
